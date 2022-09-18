@@ -3,7 +3,7 @@ name: TAIM-GAN
 on: [push]
 
 jobs:
-  code-quality:
+  create-virtualenv:
     runs-on: self-hosted
     steps:
       - name: Cloning repository
@@ -12,10 +12,30 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Creating venv
+        uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+
+      - uses: syphar/restore-pip-download-cache@v1
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+
+      - run: pip install -r requirements.txt
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+
+  code-quality:
+    needs: create-virtualenv
+    runs-on: self-hosted
+    steps:
+      - name: Cloning repository
+        uses: actions/checkout@v3
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Restore venv
+        uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+
       - name: autoflake
         run: autoflake --recursive --in-place --remove-all-unused-imports --ignore-init-module-imports src
       - name: isort
