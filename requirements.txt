@@ -55,7 +55,6 @@ sphinxcontrib-htmlhelp==2.0.0
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.3
 sphinxcontrib-serializinghtml==1.1.5
--e git+https://github.com/Dmmc123/taim-gan.git@2b93ccaf01a60183c3c950462b5788a1b8c38db5#egg=src
 toml==0.10.2
 tomli==2.0.1
 tomlkit==0.11.4
