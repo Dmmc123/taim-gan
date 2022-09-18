@@ -46,6 +46,10 @@ lint:
 	mypy src
 	safety check
 
+test:
+	coverage run -m --source src pytest tests
+	coverage report -m --skip-empty
+
 
 ## Set up python interpreter environment
 create_environment:
