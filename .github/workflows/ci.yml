@@ -26,12 +26,6 @@ jobs:
     needs: create-virtualenv
     runs-on: self-hosted
     steps:
-      - name: Cloning repository
-        uses: actions/checkout@v3
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
       - name: Restore venv
         uses: syphar/restore-virtualenv@v1
         id: cache-virtualenv
@@ -48,3 +42,16 @@ jobs:
         run: mypy src
       - name: safety-check
         run: safety check
+
+  tests:
+    needs: code-quality
+    runs-on: self-hosted
+    steps:
+      - name: Restore venv
+        uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+
+      - name: Run pytest
+        run: coverage run -m --source src pytest tests
+      - name: Report coverage
+        run: coverage report -m --skip-empty
