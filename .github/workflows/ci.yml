@@ -38,6 +38,8 @@ jobs:
 
       - name: autoflake
         run: autoflake --recursive --in-place --remove-all-unused-imports --ignore-init-module-imports src
+      - name: pyupgrade
+        run: pyupgrade --exit-zero-even-if-changed --py39-plus **/*.py
       - name: isort
         run: isort src
       - name: black
