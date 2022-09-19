@@ -40,6 +40,7 @@ update_libs:
 ## Lint using flake8
 lint:
 	autoflake --recursive --in-place --remove-all-unused-imports --ignore-init-module-imports src
+	pyupgrade --exit-zero-even-if-changed --py39-plus **/*.py
 	isort src
 	black src
 	pylint src
