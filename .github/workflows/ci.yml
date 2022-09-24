@@ -19,7 +19,9 @@ jobs:
       - uses: syphar/restore-pip-download-cache@v1
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
 
-      - run: pip install -r requirements.txt
+      - run: |
+          sed '/^pywin32.*/d' requirements.txt reqs_linux.txt
+          pip install -r reqs_linux.txt
         if: steps.cache-virtualenv.outputs.cache-hit != 'true'
 
   code-quality:
