@@ -37,6 +37,9 @@ clean:
 update_libs:
 	pip freeze > requirements.txt
 
+update_libs_win:
+	pip list --format=freeze > requirements.txt
+
 ## Lint using flake8
 lint:
 	autoflake --recursive --in-place --remove-all-unused-imports --ignore-init-module-imports src
