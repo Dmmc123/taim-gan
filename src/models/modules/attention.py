@@ -4,7 +4,7 @@ from typing import Any
 import torch
 from torch import nn
 
-from src.models.modules.conv_utils import conv2d
+from src.models.modules.conv_utils import conv1d, conv2d
 
 
 class ChannelWiseAttention(nn.Module):
@@ -48,3 +48,35 @@ class ChannelWiseAttention(nn.Module):
         a_k = self.softmax(m_k)
         w_hat = torch.transpose(w_hat, 1, 2)
         return a_k @ w_hat
+
+
+class SpatialAttention(nn.Module):
+    """Spatial attention module for attending textual context to visual features"""
+
+    def __init__(self, d: int, d_hat: int) -> None:
+        """
+        Set up softmax and conv layers
+
+        :param int d: Initial embedding size for textual features. D from paper
+        :param int d_hat: Height of image feature map. D_hat from paper
+        """
+        super().__init__()
+        self.softmax = nn.Softmax(1)
+        self.conv = conv1d(d, d_hat, kernel_size=1)
+
+    def forward(self, text_context: torch.Tensor, image: torch.Tensor) -> Any:
+        """
+        Project image features into the latent space
+        of textual features and apply attention
+
+        :param text_context: D x T tensor of hidden textual features
+        :param image: D_hat x N visual features
+        :return: Word features attended by visual features
+        :rtype: Any
+        """
+        text_context = self.conv(text_context)
+        image = torch.transpose(image, 1, 2)
+        s_i_j = image @ text_context
+        b_i_j = self.softmax(s_i_j)
+        c_i_j = b_i_j @ torch.transpose(text_context, 1, 2)
+        return torch.transpose(c_i_j, 1, 2)
