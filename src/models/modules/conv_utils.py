@@ -3,7 +3,7 @@
 from torch import nn
 
 
-def conv(
+def conv2d(
     in_channels: int,
     out_channels: int,
     kernel_size: int = 3,
@@ -22,6 +22,33 @@ def conv(
     :rtype: nn.Conv2d
     """
     return nn.Conv2d(
+        in_channels=in_channels,
+        out_channels=out_channels,
+        kernel_size=kernel_size,
+        stride=stride,
+        padding=padding,
+    )
+
+
+def conv1d(
+    in_channels: int,
+    out_channels: int,
+    kernel_size: int = 1,
+    stride: int = 1,
+    padding: int = 0,
+) -> nn.Conv1d:
+    """
+    Template 1d convolution which is typically used throughout the project
+
+    :param int in_channels: Number of input channels
+    :param int out_channels: Number of output channels
+    :param int kernel_size: Size of sliding kernel
+    :param int stride: How many steps kernel does when sliding
+    :param int padding: How many dimensions to pad
+    :return: Convolution layer with parameters
+    :rtype: nn.Conv2d
+    """
+    return nn.Conv1d(
         in_channels=in_channels,
         out_channels=out_channels,
         kernel_size=kernel_size,

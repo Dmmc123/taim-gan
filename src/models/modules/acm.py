@@ -5,7 +5,7 @@ from typing import Any
 import torch
 from torch import nn
 
-from .conv_utils import conv
+from .conv_utils import conv2d
 
 
 class ACM(nn.Module):
@@ -20,9 +20,9 @@ class ACM(nn.Module):
         :param int inner_dim: Hyperparameters for inner dimensionality of features
         """
         super().__init__()
-        self.conv = conv(in_channels=img_chans, out_channels=inner_dim)
-        self.weights = conv(in_channels=inner_dim, out_channels=text_chans)
-        self.biases = conv(in_channels=inner_dim, out_channels=text_chans)
+        self.conv = conv2d(in_channels=img_chans, out_channels=inner_dim)
+        self.weights = conv2d(in_channels=inner_dim, out_channels=text_chans)
+        self.biases = conv2d(in_channels=inner_dim, out_channels=text_chans)
 
     def forward(self, text: torch.Tensor, img: torch.Tensor) -> Any:
         """

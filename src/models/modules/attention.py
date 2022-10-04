@@ -4,7 +4,7 @@ from typing import Any
 import torch
 from torch import nn
 
-from src.models.modules.conv_utils import conv
+from src.models.modules.conv_utils import conv2d
 
 
 class ChannelWiseAttention(nn.Module):
@@ -21,7 +21,7 @@ class ChannelWiseAttention(nn.Module):
         """
         super().__init__()
         # perception layer
-        self.text_conv = conv(text_d, fm_size, kernel_size=1)
+        self.text_conv = conv2d(text_d, fm_size, kernel_size=1)
         # attention across channel dimension
         self.softmax = nn.Softmax(1)
         # dimensionalities of output feature maps
