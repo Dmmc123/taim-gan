@@ -23,7 +23,7 @@ class ChannelWiseAttention(nn.Module):
         # perception layer
         self.text_conv = conv1d(text_d, fm_size)
         # attention across channel dimension
-        self.softmax = nn.Softmax(1)
+        self.softmax = nn.Softmax(2)
 
     def forward(self, v_k: torch.Tensor, w_text: torch.Tensor) -> Any:
         """
@@ -52,7 +52,7 @@ class SpatialAttention(nn.Module):
         :param int d_hat: Height of image feature map. D_hat from paper
         """
         super().__init__()
-        self.softmax = nn.Softmax(1)
+        self.softmax = nn.Softmax(2)
         self.conv = conv1d(d, d_hat)
 
     def forward(self, text_context: torch.Tensor, image: torch.Tensor) -> Any:
