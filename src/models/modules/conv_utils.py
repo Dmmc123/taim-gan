@@ -8,7 +8,7 @@ def conv2d(
     out_channels: int,
     kernel_size: int = 3,
     stride: int = 1,
-    padding: int = 0,
+    padding: int = 1,
 ) -> nn.Conv2d:
     """
     Template convolution which is typically used throughout the project
