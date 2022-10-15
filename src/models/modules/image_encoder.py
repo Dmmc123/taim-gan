@@ -82,8 +82,8 @@ class ImageEncoder(nn.Module):
     def forward(self, image_tensor: torch.Tensor) -> Any:
         """
         :param image_tensor: Input image
-        :return: features: local feature matrix (v from attnGAN paper)
-        :return: cnn_code: global image feature (v^ from attnGAN paper)
+        :return: features: local feature matrix (v from attnGAN paper) [shape: (batch, D, 17, 17)]
+        :return: cnn_code: global image feature (v^ from attnGAN paper) [shape: (batch, D)]
         """
         # this is the image size
         # x.shape: 10 3 256 256
