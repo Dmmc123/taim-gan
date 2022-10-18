@@ -16,7 +16,10 @@ def up_sample(in_planes: int, out_planes: int) -> nn.Module:
 
 
 def img_up_block(in_planes: int, out_planes: int) -> nn.Module:
-    """Image upsample block."""
+    """
+    Image upsample block.
+    Mainly used to conver the 17 x 17 local feature map from Inception to 32 x 32 size.
+    """
     return nn.Sequential(
         nn.Upsample(scale_factor=1.9, mode="nearest"),
         nn.Conv2d(

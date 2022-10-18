@@ -18,7 +18,7 @@ class ImageEncoder(nn.Module):
         """
         super().__init__()
 
-        self.nef = D
+        self.text_emb_dim = D
 
         model = torch.hub.load(
             "pytorch/vision:v0.10.0", "inception_v3", pretrained=True
@@ -68,8 +68,10 @@ class ImageEncoder(nn.Module):
             *[getattr(model, name) for name in attribute_list2]
         )
 
-        self.emb_features = conv2d(768, self.nef, kernel_size=1, stride=1, padding=0)
-        self.emb_cnn_code = nn.Linear(2048, self.nef)
+        self.emb_features = conv2d(
+            768, self.text_emb_dim, kernel_size=1, stride=1, padding=0
+        )
+        self.emb_cnn_code = nn.Linear(2048, self.text_emb_dim)
 
     def init_trainable_weights(self) -> None:
         """
