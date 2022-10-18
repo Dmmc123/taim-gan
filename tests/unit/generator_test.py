@@ -7,9 +7,9 @@ import pytest
 @pytest.mark.parametrize(
     argnames=("batch", "Ng", "D", "conditioning_dim", "noise_dim", "L"),
     argvalues=(
-            (16, 32, 256, 100, 100, 18),
-            (32, 64, 256, 200, 50, 12),
-            (64, 16, 256, 50, 200, 14),
+            (8, 32, 256, 100, 100, 18),
+            (16, 32, 256, 200, 50, 12),
+            (8, 32, 256, 50, 200, 14),
     )
 )
 
