@@ -49,7 +49,7 @@ jobs:
       - name: black
         run: black src
       - name: pylint
-        run: pylint src
+        run: pylint src --rcfile .pylintrc
       - name: mypy
         run: mypy src
       - name: safety-check

@@ -46,7 +46,7 @@ lint:
 	pyupgrade --exit-zero-even-if-changed --py39-plus **/*.py
 	isort src
 	black src
-	pylint src
+	pylint src --rcfile .pylintrc
 	mypy src
 	safety check
 
