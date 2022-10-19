@@ -26,14 +26,14 @@ class FeedbackModule(nn.Module):
         :return: Logits for each word in the picture
         :rtype: Any
         """
-        visual_features = torch.transpose(visual_features, 1, 2)
-        word_region_correlations = visual_features @ textual_features
+        textual_features = torch.transpose(textual_features, 1, 2)
+        word_region_correlations = textual_features @ visual_features
         # normalize across L dimension
         m_norm_l = nn.functional.normalize(word_region_correlations, dim=1)
         # normalize across H*W dimension
         m_norm_hw = nn.functional.normalize(m_norm_l, dim=2)
         m_norm_hw = torch.transpose(m_norm_hw, 1, 2)
-        weighted_img_feats = textual_features @ m_norm_hw
+        weighted_img_feats = visual_features @ m_norm_hw
         weighted_img_feats = torch.sum(weighted_img_feats, dim=1)
         deltas = self.softmax(weighted_img_feats)
         return deltas
@@ -42,21 +42,23 @@ class FeedbackModule(nn.Module):
 class Discriminator(nn.Module):
     """Simple CNN-based discriminator"""
 
-    def __init__(self) -> None:
+    def __init__(self, img_chans: int) -> None:
         """
         Create a bunch of convolutions to extract features
+        :param int img_chans:
+            Amount of image channels and channels of text embeddings
         """
         super().__init__()
         self.convs = nn.Sequential(
             *[
                 self.conv_block(in_chans, out_chans)
                 for in_chans, out_chans in [
-                    (3, 5),
+                    (img_chans, 5),
                     (5, 7),
                     (7, 9),
                     (9, 7),
                     (7, 5),
-                    (5, 3),
+                    (5, img_chans),
                 ]
             ]
         )
