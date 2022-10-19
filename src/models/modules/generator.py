@@ -56,7 +56,7 @@ class InitStageG(nn.Module):
         )  # multiply channel by 3 because concat spatial and channel att
 
         self.residual = self._make_layer(ResidualBlock, ng // 8 * 3)
-        self.acm_module = ACM(ng // 8 * 3, self.gf_init)
+        self.acm_module = ACM(self.gf_init, ng // 8 * 3)
 
         self.spatial_att = SpatialAttention(self.text_dim, ng // 8)
         self.channel_att = ChannelWiseAttention(
@@ -155,7 +155,7 @@ class NextStageG(nn.Module):
 
         self.residual = self._make_layer(ResidualBlock, ng * 3)
         self.upsample = up_sample(ng * 3, ng)
-        self.acm_module = ACM(ng * 3, self.gf_init)
+        self.acm_module = ACM(self.gf_init, ng * 3)
         self.upsample2 = up_sample(ng, ng)
 
     def _make_layer(self, block: Any, channel_num: int) -> nn.Module:

@@ -15,8 +15,8 @@ import pytest
 )
 def test_vanilla_acm(text_chans, img_chans, inner_dim, batch_dim, height, width):
     acm = ACM(
-        text_chans=text_chans,
         img_chans=img_chans,
+        text_chans=text_chans,
         inner_dim=inner_dim
     )
     text = torch.rand((batch_dim, text_chans, height, width))

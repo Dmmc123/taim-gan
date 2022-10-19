@@ -11,12 +11,12 @@ from .conv_utils import conv2d
 class ACM(nn.Module):
     """Affine Combination Module from ManiGAN"""
 
-    def __init__(self, text_chans: int, img_chans: int, inner_dim: int = 64) -> None:
+    def __init__(self, img_chans: int, text_chans: int, inner_dim: int = 64) -> None:
         """
         Initialize the convolutional layers
 
-        :param int text_chans: Channels of textual input
         :param int img_chans: Channels in visual input
+        :param int text_chans: Channels of textual input
         :param int inner_dim: Hyperparameters for inner dimensionality of features
         """
         super().__init__()
@@ -28,7 +28,7 @@ class ACM(nn.Module):
         """
         Propagate the textual and visual input through the ACM module
 
-        :param torch.Tensor text: Textual input
+        :param torch.Tensor text: Textual input (can be hidden features)
         :param torch.Tensor img: Image input
         :return: Affine combination of text and image
         :rtype: torch.Tensor
