@@ -37,13 +37,16 @@ clean:
 update_libs:
 	pip freeze > requirements.txt
 
+update_libs_win:
+	pip list --format=freeze > requirements.txt
+
 ## Lint using flake8
 lint:
 	autoflake --recursive --in-place --remove-all-unused-imports --ignore-init-module-imports src
 	pyupgrade --exit-zero-even-if-changed --py39-plus **/*.py
 	isort src
 	black src
-	pylint src
+	pylint src --rcfile .pylintrc
 	mypy src
 	safety check
 
