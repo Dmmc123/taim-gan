@@ -107,3 +107,34 @@ class ImageEncoder(nn.Module):
         # feature.shape: 10 256 17 17
         # cnn_code.shape: 10 256
         return features, cnn_code
+
+
+class VGGEncoder(nn.Module):
+    """Pre Trained VGG Encoder Module"""
+
+    def __init__(self) -> None:
+        """
+        Initialize pre-trained VGG model with frozen parameters
+        """
+        super().__init__()
+        self.select = ["8"]  ## We want to get the output of the 8th layer in VGG.
+
+        model = torch.hub.load("pytorch/vision:v0.10.0", "vgg16", pretrained=True)
+
+        for param in model.parameters():
+            param.resquires_grad = False
+
+        self.vgg_modules = model.features._modules
+
+    def forward(self, image_tensor: torch.Tensor) -> Any:
+        """
+        :param x: Input image tensor [shape: (batch, 3, 256, 256)]
+        :return: VGG features [shape: (batch, 128, 128, 128)]
+        """
+        features = []
+        for name, layer in self.vgg_modules.items():
+            image_tensor = layer(image_tensor)
+            if name in self.select:
+                features.append(image_tensor)
+                break
+        return features[0]
