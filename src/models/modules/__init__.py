@@ -6,6 +6,6 @@ from .conv_utils import calc_out_conv, conv1d, conv2d
 from .discriminator import Discriminator, FeedbackModule
 from .downsample import down_sample
 from .generator import Generator
-from .image_encoder import ImageEncoder, VGGEncoder
+from .image_encoder import InceptionEncoder, VGGEncoder
 from .residual import ResidualBlock
 from .upsample import img_up_block, up_sample

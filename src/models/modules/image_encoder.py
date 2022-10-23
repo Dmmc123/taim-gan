@@ -9,7 +9,7 @@ from src.models.modules.conv_utils import conv2d
 # build inception v3 image encoder
 
 
-class ImageEncoder(nn.Module):
+class InceptionEncoder(nn.Module):
     """Image Encoder Module adapted from AttnGAN"""
 
     def __init__(self, D: int):
