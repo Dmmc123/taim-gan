@@ -135,3 +135,4 @@ class VGGEncoder(nn.Module):
             image_tensor = layer(image_tensor)
             if name in self.select:
                 return image_tensor
+        return None
