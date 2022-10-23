@@ -131,10 +131,7 @@ class VGGEncoder(nn.Module):
         :param x: Input image tensor [shape: (batch, 3, 256, 256)]
         :return: VGG features [shape: (batch, 128, 128, 128)]
         """
-        features = []
         for name, layer in self.vgg_modules.items():
             image_tensor = layer(image_tensor)
             if name in self.select:
-                features.append(image_tensor)
-                break
-        return features[0]
+                return image_tensor
