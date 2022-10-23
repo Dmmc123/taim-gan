@@ -7,9 +7,10 @@ import pytest
 @pytest.mark.parametrize(
     argnames=("batch", "channel_num", "height", "width"),
     argvalues=(
-            (16, 128, 256, 256),
-            (32, 256, 128, 128),
-            (64, 64, 64, 64),
+            # big dims do oom error on runner, upgrade costs money
+            (2, 128, 128, 128),
+            (1, 32, 64, 64),
+            (4, 2, 64, 64),
     )
 )
 def test_residual(batch, channel_num, height, width):

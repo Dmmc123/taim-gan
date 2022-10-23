@@ -8,4 +8,5 @@ from .downsample import down_sample
 from .generator import Generator
 from .image_encoder import InceptionEncoder, VGGEncoder
 from .residual import ResidualBlock
+from .text_encoder import TextEncoder
 from .upsample import img_up_block, up_sample
