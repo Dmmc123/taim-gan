@@ -21,7 +21,7 @@ class TextEncoder(nn.Module):
         """
         super().__init__()
         self.embs = nn.Embedding(vocab_size, emb_dim)
-        self.lstm = nn.LSTM(emb_dim, hidden_dim, batch_first=True)
+        self.lstm = nn.LSTM(emb_dim, hidden_dim, bidirectional=True, batch_first=True)
 
     def forward(self, tokens: torch.Tensor) -> Any:
         """
@@ -35,4 +35,5 @@ class TextEncoder(nn.Module):
         embs = self.embs(tokens)
         output, (hidden_states, _) = self.lstm(embs)
         word_embs = torch.transpose(output, 1, 2)
-        return word_embs, hidden_states[0]
+        sent_embs = torch.cat((hidden_states[-1, :, :], hidden_states[0, :, :]), dim=1)
+        return word_embs, sent_embs
