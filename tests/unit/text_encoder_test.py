@@ -19,6 +19,6 @@ def test_text_encoder(emb_dim, hidden_dim, batch, vocab_len, n_words):
     encoder = TextEncoder(vocab_len, emb_dim, hidden_dim)
     tokens = torch.randint(0, n_words, (batch, n_words))
     w, s = encoder(tokens)
-    assert w.size() == (batch, 2*hidden_dim, n_words), "word embeddings should be BxCxL"
-    assert s.size() == (batch, 2*hidden_dim), "sentence embeddings should be BxC"
+    assert w.size() == (batch, hidden_dim, n_words), "word embeddings should be BxCxL"
+    assert s.size() == (batch, hidden_dim), "sentence embeddings should be BxC"
 
