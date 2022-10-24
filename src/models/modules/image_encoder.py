@@ -133,6 +133,6 @@ class VGGEncoder(nn.Module):
         """
         for name, layer in self.vgg_modules.items():
             image_tensor = layer(image_tensor)
-            if name in self.select:
+            if name == self.select:
                 return image_tensor
         return None
