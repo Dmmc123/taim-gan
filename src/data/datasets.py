@@ -1,17 +1,19 @@
 """Pytorch Dataset classes for the datasets used in the project."""
 
 import os
+import pickle
+from collections import defaultdict
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import torch
+import torchvision.transforms.functional as F
+from nltk.tokenize import RegexpTokenizer
+from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
-import torchvision.transforms.functional as F
-from PIL import Image
-from typing import Any
-import pickle
-from nltk.tokenize import RegexpTokenizer
-from collections import defaultdict
+
 
 class TextImageDataset(Dataset):
     """Custom PyTorch Dataset class to load Image and Text data."""
