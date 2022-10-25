@@ -5,6 +5,7 @@ import pickle
 from collections import defaultdict
 from typing import Any
 
+import nltk
 import numpy as np
 import pandas as pd
 import torch
@@ -13,10 +14,9 @@ from nltk.tokenize import RegexpTokenizer
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
-import nltk
 
 
-class TextImageDataset(Dataset):
+class TextImageDataset(Dataset): #type: ignore
     """Custom PyTorch Dataset class to load Image and Text data."""
 
     # pylint: disable=too-many-instance-attributes
@@ -62,11 +62,11 @@ class TextImageDataset(Dataset):
                 "Invalid data path. Please use './data/birds/' or './data/coco/'"
             )
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Return the length of the dataset."""
         return len(self.file_names)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Any:
         """
         Return the item at index idx.
         :param idx: index of the item to return
@@ -124,7 +124,7 @@ class TextImageDataset(Dataset):
             else:
                 word_labels.append(0)
 
-        word_labels = torch.tensor(word_labels, dtype=torch.int64)
+        word_labels = torch.tensor(word_labels, dtype=torch.int64)  # type: ignore
 
         return (
             img_tensor,
@@ -136,7 +136,7 @@ class TextImageDataset(Dataset):
             word_labels,
         )
 
-    def get_capt_and_vocab(self, data_dir: str, split: str):
+    def get_capt_and_vocab(self, data_dir: str, split: str) -> Any:
         """
         Helper function to get the captions, vocab dict for each image.
         :param data_dir: path to the data directory [i.e. './birds/' or './coco/']
@@ -176,8 +176,8 @@ class TextImageDataset(Dataset):
                 test_captions,
                 ix_to_word,
                 word_to_ix,
-                num_words,
-            ) = self.build_vocab(
+                num_words, 
+            ) = self.build_vocab( # type: ignore
                 train_captions_tokenized, test_captions_tokenized, split
             )
             vocab_list = [train_captions, test_captions, ix_to_word, word_to_ix]
@@ -191,8 +191,8 @@ class TextImageDataset(Dataset):
             raise ValueError("Invalid split. Please use 'train' or 'test'")
 
     def build_vocab(
-        self, tokenized_captions_train: list, tokenized_captions_test: list
-    ):
+        self, tokenized_captions_train: list, tokenized_captions_test: list  # type: ignore
+    ) -> Any:
         """
         Helper function which builds the vocab dicts.
         :param tokenized_captions_train: list containing all the
@@ -207,14 +207,14 @@ class TextImageDataset(Dataset):
         :return word_to_ix: dictionary mapping word to index
         :return num_words: number of unique words in the vocabulary
         """
-        vocab = defaultdict(int)
+        vocab = defaultdict(int)  # type: ignore
         total_captions = tokenized_captions_train + tokenized_captions_test
         for caption in total_captions:
             for word in caption:
                 vocab[word] += 1
 
         # sort vocab dict by frequency in descending order
-        vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
+        vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)  # type: ignore
 
         ix_to_word = {}
         word_to_ix = {}
@@ -251,7 +251,7 @@ class TextImageDataset(Dataset):
             len(ix_to_word),
         )
 
-    def get_tokenized_captions(self, data_dir: str, filenames: list):
+    def get_tokenized_captions(self, data_dir: str, filenames: list) -> Any:  # type: ignore
         """
         Helper function to tokenize and return captions for each image in filenames.
         :param data_dir: path to the data directory [i.e. './birds/' or './coco/']
@@ -263,7 +263,7 @@ class TextImageDataset(Dataset):
         all_captions = []
         for filename in filenames:
             caption_path = os.path.join(data_dir, "text", filename + ".txt")
-            with open(caption_path, 'r', encoding="utf8") as txt_file:
+            with open(caption_path, "r", encoding="utf8") as txt_file:
                 captions = txt_file.readlines()
                 count = 0
                 for caption in captions:
@@ -294,7 +294,7 @@ class TextImageDataset(Dataset):
 
         return all_captions
 
-    def get_image(self, img_path: str, bbox: list, transform: Any):
+    def get_image(self, img_path: str, bbox: list, transform: Any) -> Any:  # type: ignore
         """
         Helper function to load and transform an image.
         :param img_path: path to the image
@@ -337,7 +337,7 @@ class TextImageDataset(Dataset):
 
         return img_tensor
 
-    def load_filenames(self, data_dir: str, split: str):
+    def load_filenames(self, data_dir: str, split: str) -> Any:
         """
         Helper function to get list of all image filenames.
         :param data_dir: path to the data directory [i.e. './birds/' or './coco/']
@@ -355,7 +355,7 @@ class TextImageDataset(Dataset):
             )
         return filenames
 
-    def get_class_id(self, data_dir: str, split: str, total_elems: int):
+    def get_class_id(self, data_dir: str, split: str, total_elems: int) -> Any:
         """
         Helper function to get list of all image class ids.
         :param data_dir: path to the data directory [i.e. './birds/' or './coco/']
@@ -371,7 +371,7 @@ class TextImageDataset(Dataset):
             class_ids = np.arange(total_elems)
         return class_ids
 
-    def get_bound_box(self, data_path):
+    def get_bound_box(self, data_path: str) -> Any:
         """
         Helper function to get the bounding box for birds dataset.
         :param data_path: path to birds data directory [i.e. './data/birds/']
@@ -388,7 +388,7 @@ class TextImageDataset(Dataset):
             1
         ].tolist()  # df_filenames[0] just contains the index or ID.
 
-        img_to_box = {
+        img_to_box = {  # type: ignore
             img_file[:-4]: [] for img_file in filenames
         }  # remove the .jpg extension from the names
         num_imgs = len(filenames)
