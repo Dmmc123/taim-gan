@@ -16,7 +16,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 
 
-class TextImageDataset(Dataset): #type: ignore
+class TextImageDataset(Dataset):  # type: ignore
     """Custom PyTorch Dataset class to load Image and Text data."""
 
     # pylint: disable=too-many-instance-attributes
@@ -73,7 +73,6 @@ class TextImageDataset(Dataset): #type: ignore
         :return img_tensor: image tensor
         :return correct_caption: correct caption for the image [list of word indices]
         :return curr_class_id: class id of the image
-        :return file_name: file name of the image
         :return wrong_caption: wrong caption for the image [list of word indices]
         :return wrong_class_id: class id of the wrong caption
         :return word_labels: POS_tagged word labels [1 for noun and adjective, 0 else]
@@ -126,11 +125,13 @@ class TextImageDataset(Dataset): #type: ignore
 
         word_labels = torch.tensor(word_labels, dtype=torch.int64)  # type: ignore
 
+        curr_class_id = torch.tensor(curr_class_id, dtype=torch.int64).unsqueeze(0)
+        wrong_class_id = torch.tensor(wrong_class_id, dtype=torch.int64).unsqueeze(0)
+
         return (
             img_tensor,
             correct_caption,
             curr_class_id,
-            file_name,
             wrong_caption,
             wrong_class_id,
             word_labels,
@@ -176,8 +177,8 @@ class TextImageDataset(Dataset): #type: ignore
                 test_captions,
                 ix_to_word,
                 word_to_ix,
-                num_words, 
-            ) = self.build_vocab( # type: ignore
+                num_words,
+            ) = self.build_vocab(  # type: ignore
                 train_captions_tokenized, test_captions_tokenized, split
             )
             vocab_list = [train_captions, test_captions, ix_to_word, word_to_ix]
