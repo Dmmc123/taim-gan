@@ -228,6 +228,9 @@ class TextImageDataset(Dataset):  # type: ignore
             ix_to_word[word_idx] = word
             word_idx += 1
 
+        word_to_ix["<unk>"] = word_idx
+        ix_to_word[word_idx] = "<unk>"
+
         train_captions_int = []  # we want to convert words to indices in vocab.
         for caption in tokenized_captions_train:
             curr_caption_int = []
