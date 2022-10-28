@@ -18,6 +18,11 @@ def custom_collate(batch: list[Any]) -> Any:
     batched_img = torch.stack(img, dim=0).to(
         device
     )  # shape: (batch_size, 3, height, width)
+    correct_capt_len = torch.tensor(
+        [len(capt) for capt in correct_capt], dtype=torch.int64
+    ).unsqueeze(
+        1
+    )  # shape: (batch_size, 1)
     batched_correct_capt = pad_sequence(
         correct_capt, batch_first=True, padding_value=0
     ).to(
@@ -25,6 +30,11 @@ def custom_collate(batch: list[Any]) -> Any:
     )  # shape: (batch_size, max_seq_len)
     batched_curr_class = torch.stack(curr_class, dim=0).to(
         device
+    )  # shape: (batch_size, 1)
+    wrong_capt_len = torch.tensor(
+        [len(capt) for capt in wrong_capt], dtype=torch.int64
+    ).unsqueeze(
+        1
     )  # shape: (batch_size, 1)
     batched_wrong_capt = pad_sequence(wrong_capt, batch_first=True, padding_value=0).to(
         device
@@ -40,8 +50,10 @@ def custom_collate(batch: list[Any]) -> Any:
     return (
         batched_img,
         batched_correct_capt,
+        correct_capt_len,
         batched_curr_class,
         batched_wrong_capt,
+        wrong_capt_len,
         batched_wrong_class,
         batched_word_labels,
     )
