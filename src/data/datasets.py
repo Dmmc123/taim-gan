@@ -15,6 +15,9 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+nltk.download("punkt")
+nltk.download("averaged_perceptron_tagger")
+
 
 class TextImageDataset(Dataset):  # type: ignore
     """Custom PyTorch Dataset class to load Image and Text data."""
@@ -51,15 +54,15 @@ class TextImageDataset(Dataset):  # type: ignore
             ]
         )
         self.class_ids = self.get_class_id(data_path, split, len(self.file_names))
-        if self.data_path == "./birds/":
+        if self.data_path.endswith("birds/"):
             self.bound_box_map = self.get_bound_box(data_path)
 
-        elif self.data_path == "./coco/":
+        elif self.data_path.endswith("coco/"):
             pass
 
         else:
             raise ValueError(
-                "Invalid data path. Please use './data/birds/' or './data/coco/'"
+                "Invalid data path. Please ensure the data [CUB/COCO] is stored in correct folders."
             )
 
     def __len__(self) -> int:
