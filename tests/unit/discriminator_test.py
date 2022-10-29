@@ -8,6 +8,7 @@ RGB = 3
 IMG_HW = 256
 C = IMG_HW
 
+
 @pytest.mark.parametrize(
     argnames=("batch_num", "num_words"),
     argvalues=(

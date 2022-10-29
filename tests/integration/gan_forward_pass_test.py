@@ -32,7 +32,7 @@ def test_gan(Ng, cond_dim, z_dim, vocab_size, word_emb_dim, batch_size, L):
     :param int L: amount of words in one input string
     """
     # define D, G, and visual/textual encoders
-    D = Discriminator()
+    D = Discriminator(n_words=L)
     G = Generator(Ng=Ng, D=C, conditioning_dim=cond_dim, noise_dim=z_dim)
     lstm = TextEncoder(vocab_size=vocab_size, emb_dim=word_emb_dim, hidden_dim=HIDDEN_DIM)
     vgg = VGGEncoder()
@@ -50,6 +50,6 @@ def test_gan(Ng, cond_dim, z_dim, vocab_size, word_emb_dim, batch_size, L):
     # obtain fake images
     fake_images, _, _ = G(noise, sent_embs, word_embs, global_features, local_features, vgg_features)
     # propagate fake images through discriminator and get logits
-    logits = D(fake_images, word_embs)
+    logits_word_level, logits_uncond, logits_cond = D(fake_images, word_embs)
 
 
