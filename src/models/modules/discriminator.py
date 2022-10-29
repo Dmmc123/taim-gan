@@ -4,7 +4,7 @@ from typing import Any
 import torch
 from torch import nn
 
-from src.models.modules.conv_utils import conv1d
+from src.models.modules.conv_utils import conv1d, conv2d
 from src.models.modules.image_encoder import InceptionEncoder
 
 
@@ -50,23 +50,52 @@ class WordLevelLogits(nn.Module):
         return deltas
 
 
-# class UnconditionalLogits(nn.Module):
-#     """Head for retrieving logits from an image"""
-#
-#     def __init__(self):
-#         super().__init__()
+class UnconditionalLogits(nn.Module):
+    """Head for retrieving logits from an image"""
+
+    def __init__(self, n_words: int) -> None:
+        """
+        Initialize modules that reduce the features down to a set of logits
+
+        :param int n_words: Max length of a caption
+        """
+        super().__init__()
+        self.squisher = nn.Sequential(
+            conv2d(128, n_words),  # for reducing the channel dimension
+            nn.Conv2d(n_words, n_words, kernel_size=17),  # to reduce feature maps
+        )
+        # flattening Bx17x1x1 into Bx17
+        self.flat = nn.Flatten()
+
+    def forward(self, visual_features: torch.Tensor) -> Any:
+        """
+        Compute logits for unconditioned adversarial loss
+
+        :param visual_features: Local features from Inception network. Bx128x17x17
+        :return: Logits for unconditioned adversarial loss. BxL
+        :rtype: Any
+        """
+        # reduce channels and feature maps for visual features
+        visual_features = self.squisher(visual_features)
+        # flatten Bx17x1x1 into Bx17
+        logits = self.flat(visual_features)
+        return logits
 
 
 class Discriminator(nn.Module):
     """Simple CNN-based discriminator"""
 
-    def __init__(self) -> None:
-        """Use a pretrained InceptionNet to extract features"""
+    def __init__(self, n_words: int) -> None:
+        """
+        Use a pretrained InceptionNet to extract features
+
+        :param int n_words: Max length of a text caption for an image
+        """
         super().__init__()
         self.encoder = InceptionEncoder(D=128)
-        # skip batch and channel dims, flatten only feature maps
-        self.flat_fm = nn.Flatten(start_dim=2)
+        # define different logit extractors for different losses
         self.logits_word_level = WordLevelLogits()
+        self.logits_uncond = UnconditionalLogits(n_words=n_words)
 
     def forward(self, images: torch.Tensor, textual_info: torch.Tensor) -> Any:
         """
@@ -81,22 +110,27 @@ class Discriminator(nn.Module):
         img_features, _ = self.encoder(images)
         # getting word-level feedback for the generated image
         logits_word_level = self.logits_word_level(img_features, textual_info)
-        return logits_word_level
+        # getting unconditioned adversarial logits
+        logits_uncond = self.logits_uncond(img_features)
+        return logits_word_level, logits_uncond
 
 
 # def main():
 #     img_size = (3, 256, 256)
 #     batch = 4
 #     hidden_dim = 256
-#     n_words = 18
+#     n_words = 200
 #
-#     D = Discriminator()
+#     D = Discriminator(n_words=n_words)
 #
 #     images = torch.rand((batch, *img_size))
 #     textual_info = torch.rand((batch, hidden_dim, n_words))
 #
-#     logits = D(images, textual_info)
-#     print(logits.size())
+#     inc_features = torch.rand((batch, 128, 17, 17))
+#
+#     logits_words, logits_uncond = D(images, textual_info)
+#     print(logits_words.size())
+#     print(logits_uncond.size())
 #
 #
 # if __name__ == "__main__":
