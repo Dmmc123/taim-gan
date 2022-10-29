@@ -8,9 +8,9 @@ import pytest
 @pytest.mark.parametrize(
     argnames=("batch", "Ng", "D", "conditioning_dim", "noise_dim", "L"),
     argvalues=(
-            (8,  32, 16, 100, 100, 18),
-            (16, 32, 32, 200, 50,  12),
-            (8,  32, 15, 50,  200, 14),
+            (2,  32, 16, 100, 100, 18),
+            (4,  32, 32, 20,  50,  12),
+            (2,  32, 15, 50,  200, 14),
     )
 )
 def test_generator(batch, Ng, D, conditioning_dim, noise_dim, L):
