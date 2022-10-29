@@ -51,7 +51,7 @@ lint:
 	safety check
 
 test:
-	coverage run -m --source src pytest tests
+	coverage run -m --source src/models pytest tests
 	coverage report -m --skip-empty
 
 

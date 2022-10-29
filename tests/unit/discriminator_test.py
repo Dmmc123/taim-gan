@@ -17,7 +17,7 @@ def test_d(batch_num, height, width, num_words):
     # generate fake rgb images
     v = torch.rand((batch_num, 3, height, width))
     # generate contextual embeddings of the same channels
-    w = torch.rand((batch_num, 3, num_words))
-    D = Discriminator(emb_len=3)
+    w = torch.rand((batch_num, 256, num_words))
+    D = Discriminator()
     logits = D(v, w)
     assert logits.size() == (batch_num, num_words), "output dims should never change"

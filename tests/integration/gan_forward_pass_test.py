@@ -32,7 +32,7 @@ def test_gan(Ng, cond_dim, z_dim, vocab_size, word_emb_dim, batch_size, L):
     :param int L: amount of words in one input string
     """
     # define D, G, and visual/textual encoders
-    D = Discriminator(emb_len=C)
+    D = Discriminator()
     G = Generator(Ng=Ng, D=C, conditioning_dim=cond_dim, noise_dim=z_dim)
     lstm = TextEncoder(vocab_size=vocab_size, emb_dim=word_emb_dim, hidden_dim=HIDDEN_DIM)
     vgg = VGGEncoder()

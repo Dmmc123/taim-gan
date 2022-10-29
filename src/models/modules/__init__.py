@@ -3,7 +3,7 @@ from .acm import ACM
 from .attention import ChannelWiseAttention, SpatialAttention
 from .cond_augment import CondAugmentation
 from .conv_utils import calc_out_conv, conv1d, conv2d
-from .discriminator import Discriminator, FeedbackModule
+from .discriminator import Discriminator, WordLevelLogits
 from .downsample import down_sample
 from .generator import Generator
 from .image_encoder import InceptionEncoder, VGGEncoder
