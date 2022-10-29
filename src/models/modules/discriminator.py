@@ -82,6 +82,45 @@ class UnconditionalLogits(nn.Module):
         return logits
 
 
+class ConditionalLogits(nn.Module):
+    """Logits extractor for conditioned adversarial loss"""
+
+    def __init__(self, n_words: int) -> None:
+        super().__init__()
+        # recording value of L
+        self.n_words = n_words
+        # layer for increasing the number of textual channels
+        self.text_conv = conv1d(256, 17 * 17)
+        # for reduced textual + visual features down to 1x1 feature map
+        self.joint_conv = nn.Conv2d(128 + n_words, n_words, kernel_size=17)
+        # converting BxLx1x1 into BxL
+        self.flat = nn.Flatten()
+
+    def forward(self, images: torch.Tensor, textual_info: torch.Tensor) -> Any:
+        """
+        Compute logits for conditional adversarial loss
+
+        :param torch.Tensor images: Images to be analyzed. Bx3x256x256
+        :param torch.Tensor textual_info: Output of RNN (text encoder). Bx3xL
+        :return: Logits for conditional adversarial loss. BxL
+        :rtype: Any
+        """
+        # propagate text embs through 1d conv to
+        # align dims with visual feature maps
+        textual_info = self.text_conv(textual_info)
+        # transform textual info into shape of visual feature maps
+        # Bx289xL -> BxLx289 -> BxLx17x17
+        textual_info = torch.transpose(textual_info, 1, 2)
+        textual_info = textual_info.view(-1, self.n_words, 17, 17)
+        # unite textual and visual features across the dim of channels
+        cross_features = torch.cat((images, textual_info), dim=1)
+        # reduce dims down to length of caption and form raw logits
+        cross_features = self.joint_conv(cross_features)
+        # form logits from BxLx1x1 into BxL
+        logits = self.flat(cross_features)
+        return logits
+
+
 class Discriminator(nn.Module):
     """Simple CNN-based discriminator"""
 
@@ -96,6 +135,7 @@ class Discriminator(nn.Module):
         # define different logit extractors for different losses
         self.logits_word_level = WordLevelLogits()
         self.logits_uncond = UnconditionalLogits(n_words=n_words)
+        self.logits_cond = ConditionalLogits(n_words=n_words)
 
     def forward(self, images: torch.Tensor, textual_info: torch.Tensor) -> Any:
         """
@@ -112,25 +152,28 @@ class Discriminator(nn.Module):
         logits_word_level = self.logits_word_level(img_features, textual_info)
         # getting unconditioned adversarial logits
         logits_uncond = self.logits_uncond(img_features)
-        return logits_word_level, logits_uncond
+        # computing logits for conditional adversarial loss
+        logits_cond = self.logits_cond(img_features, textual_info)
+        return logits_word_level, logits_uncond, logits_cond
 
 
 # def main():
 #     img_size = (3, 256, 256)
 #     batch = 4
 #     hidden_dim = 256
-#     n_words = 200
+#     n_words = 18
 #
 #     D = Discriminator(n_words=n_words)
 #
 #     images = torch.rand((batch, *img_size))
 #     textual_info = torch.rand((batch, hidden_dim, n_words))
 #
-#     inc_features = torch.rand((batch, 128, 17, 17))
+#     # logits_words, logits_uncond, logits_cond = D(images, textual_info)
+#     # print(logits_words.size())
+#     # print(logits_uncond.size())
+#     # print(logits_cond.size())
 #
-#     logits_words, logits_uncond = D(images, textual_info)
-#     print(logits_words.size())
-#     print(logits_uncond.size())
+#     print(sum(p.numel() for p in D.parameters() if p.requires_grad))
 #
 #
 # if __name__ == "__main__":
