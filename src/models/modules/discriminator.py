@@ -22,9 +22,7 @@ class WordLevelLogits(nn.Module):
         # change dism of of textual embs to correlate with chans of inception
         self.chan_reduction = conv1d(256, 128)
 
-    def forward(
-        self, visual_features: torch.Tensor, word_embs: torch.Tensor
-    ) -> Any:
+    def forward(self, visual_features: torch.Tensor, word_embs: torch.Tensor) -> Any:
         """
         Fuse two types of features together to get output for feeding into the classification loss
         :param torch.Tensor visual_features:
@@ -91,9 +89,9 @@ class ConditionalLogits(nn.Module):
         # recording value of L
         self.n_words = n_words
         # layer for increasing the number of textual channels
-        self.text_conv = conv1d(256, 17 * 17)
+        self.text_conv = conv1d(1, 128)
         # for reduced textual + visual features down to 1x1 feature map
-        self.joint_conv = nn.Conv2d(128 + n_words, n_words, kernel_size=17)
+        self.joint_conv = nn.Conv2d(2 * 128, n_words, kernel_size=17)
         # converting BxLx1x1 into BxL
         self.flat = nn.Flatten()
 
@@ -106,13 +104,12 @@ class ConditionalLogits(nn.Module):
         :return: Logits for conditional adversarial loss. BxL
         :rtype: Any
         """
+        # transform textual info into shape of visual feature maps
+        # Bx256 -> Bx1x16x16
+        sent_embs = sent_embs.view(-1, 1, 16, 16)
         # propagate text embs through 1d conv to
         # align dims with visual feature maps
         sent_embs = self.text_conv(sent_embs)
-        # transform textual info into shape of visual feature maps
-        # Bx289xL -> BxLx289 -> BxLx17x17
-        sent_embs = torch.transpose(sent_embs, 1, 2)
-        sent_embs = sent_embs.view(-1, self.n_words, 17, 17)
         # unite textual and visual features across the dim of channels
         cross_features = torch.cat((visual_features, sent_embs), dim=1)
         # reduce dims down to length of caption and form raw logits
@@ -138,10 +135,9 @@ class Discriminator(nn.Module):
         self.logits_uncond = UnconditionalLogits(n_words=n_words)
         self.logits_cond = ConditionalLogits(n_words=n_words)
 
-    def forward(self,
-                images: torch.Tensor,
-                sent_embs: torch.Tensor,
-                word_embs: torch.Tensor) -> Any:
+    def forward(
+        self, images: torch.Tensor, sent_embs: torch.Tensor, word_embs: torch.Tensor
+    ) -> Any:
         """
         Obtain regional features for images and return logits
 
