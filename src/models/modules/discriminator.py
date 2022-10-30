@@ -28,8 +28,9 @@ class WordLevelLogits(nn.Module):
         """
         Fuse two types of features together to get output for feeding into the classification loss
         :param torch.Tensor visual_features:
-            Feature maps of an image after being processed by discriminator. Bx128x17x17
-        :param torch.Tensor textual_features: Result of text encoder Bx256xL
+            Feature maps of an image after being processed by Inception encoder. Bx128x17x17
+        :param torch.Tensor textual_features:
+            Word-level embeddings from the text encoder Bx256xL
         :return: Logits for each word in the picture. BxL
         :rtype: Any
         """
@@ -100,8 +101,8 @@ class ConditionalLogits(nn.Module):
         """
         Compute logits for conditional adversarial loss
 
-        :param torch.Tensor images: Images to be analyzed. Bx3x256x256
-        :param torch.Tensor textual_info: Output of RNN (text encoder). Bx256xL
+        :param torch.Tensor images: Features from Inception encoder. Bx128x17x17
+        :param torch.Tensor textual_info: Sentence embeddings from text encoder. Bx256
         :return: Logits for conditional adversarial loss. BxL
         :rtype: Any
         """
