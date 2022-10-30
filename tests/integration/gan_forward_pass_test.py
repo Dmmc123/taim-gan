@@ -50,6 +50,6 @@ def test_gan(Ng, cond_dim, z_dim, vocab_size, word_emb_dim, batch_size, L):
     # obtain fake images
     fake_images, _, _ = G(noise, sent_embs, word_embs, global_features, local_features, vgg_features)
     # propagate fake images through discriminator and get logits
-    logits_word_level, logits_uncond, logits_cond = D(fake_images, word_embs)
+    logits_word_level, logits_uncond, logits_cond = D(fake_images, word_embs, sent_embs)
 
 
