@@ -88,8 +88,10 @@ class ConditionalLogits(nn.Module):
         super().__init__()
         # recording value of L
         self.n_words = n_words
-        # layer for increasing the number of textual channels
-        self.text_conv = conv1d(1, 128)
+        # layer for forming the feature maps out of textual info
+        self.text_to_fm = conv1d(256, 17 * 17)
+        # fitting the size of text channels to the size of visual channels
+        self.chan_aligner = conv2d(1, 128)
         # for reduced textual + visual features down to 1x1 feature map
         self.joint_conv = nn.Conv2d(2 * 128, n_words, kernel_size=17)
         # converting BxLx1x1 into BxL
@@ -104,12 +106,16 @@ class ConditionalLogits(nn.Module):
         :return: Logits for conditional adversarial loss. BxL
         :rtype: Any
         """
+        # make text and visual features have the same sizes of feature maps
+        # Bx256 -> Bx256x1 -> Bx289x1
+        sent_embs = sent_embs.view(-1, 256, 1)
+        sent_embs = self.text_to_fm(sent_embs)
         # transform textual info into shape of visual feature maps
-        # Bx256 -> Bx1x16x16
-        sent_embs = sent_embs.view(-1, 1, 16, 16)
+        # Bx289x1 -> Bx1x17x17
+        sent_embs = sent_embs.view(-1, 1, 17, 17)
         # propagate text embs through 1d conv to
         # align dims with visual feature maps
-        sent_embs = self.text_conv(sent_embs)
+        sent_embs = self.chan_aligner(sent_embs)
         # unite textual and visual features across the dim of channels
         cross_features = torch.cat((visual_features, sent_embs), dim=1)
         # reduce dims down to length of caption and form raw logits
@@ -136,7 +142,7 @@ class Discriminator(nn.Module):
         self.logits_cond = ConditionalLogits(n_words=n_words)
 
     def forward(
-        self, images: torch.Tensor, sent_embs: torch.Tensor, word_embs: torch.Tensor
+        self, images: torch.Tensor, word_embs: torch.Tensor, sent_embs: torch.Tensor
     ) -> Any:
         """
         Obtain regional features for images and return logits
