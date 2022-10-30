@@ -64,7 +64,7 @@ class UnconditionalLogits(nn.Module):
             conv2d(128, n_words),  # for reducing the channel dimension
             nn.Conv2d(n_words, n_words, kernel_size=17),  # to reduce feature maps
         )
-        # flattening Bx17x1x1 into Bx17
+        # flattening BxLx1x1 into BxL
         self.flat = nn.Flatten()
 
     def forward(self, visual_features: torch.Tensor) -> Any:
@@ -101,7 +101,7 @@ class ConditionalLogits(nn.Module):
         Compute logits for conditional adversarial loss
 
         :param torch.Tensor images: Images to be analyzed. Bx3x256x256
-        :param torch.Tensor textual_info: Output of RNN (text encoder). Bx3xL
+        :param torch.Tensor textual_info: Output of RNN (text encoder). Bx256xL
         :return: Logits for conditional adversarial loss. BxL
         :rtype: Any
         """
@@ -142,11 +142,12 @@ class Discriminator(nn.Module):
         Obtain regional features for images and return logits
 
         :param images: Images to be analyzed. Bx3x256x256
-        :param textual_info: Output of RNN (text encoder). Bx3xL
-        :return: Types of logits for different losses
+        :param textual_info: Output of RNN (text encoder). Bx256xL
+        :return: Types of logits for different losses. BxL
         :rtype: Any
         """
         # only taking the local features from inception
+        # Bx3x256x256 -> Bx128x17x17
         img_features, _ = self.encoder(images)
         # getting word-level feedback for the generated image
         logits_word_level = self.logits_word_level(img_features, textual_info)
@@ -155,26 +156,3 @@ class Discriminator(nn.Module):
         # computing logits for conditional adversarial loss
         logits_cond = self.logits_cond(img_features, textual_info)
         return logits_word_level, logits_uncond, logits_cond
-
-
-# def main():
-#     img_size = (3, 256, 256)
-#     batch = 4
-#     hidden_dim = 256
-#     n_words = 18
-#
-#     D = Discriminator(n_words=n_words)
-#
-#     images = torch.rand((batch, *img_size))
-#     textual_info = torch.rand((batch, hidden_dim, n_words))
-#
-#     # logits_words, logits_uncond, logits_cond = D(images, textual_info)
-#     # print(logits_words.size())
-#     # print(logits_uncond.size())
-#     # print(logits_cond.size())
-#
-#     print(sum(p.numel() for p in D.parameters() if p.requires_grad))
-#
-#
-# if __name__ == "__main__":
-#     main()
