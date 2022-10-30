@@ -4,10 +4,11 @@ from typing import Any
 import torch
 from torch import nn
 
+from src.models.modules.conv_utils import conv1d, conv2d
 from src.models.modules.image_encoder import InceptionEncoder
 
 
-class FeedbackModule(nn.Module):
+class WordLevelLogits(nn.Module):
     """API for converting regional feature maps into logits for multi-class classification"""
 
     def __init__(self) -> None:
@@ -16,20 +17,27 @@ class FeedbackModule(nn.Module):
         """
         super().__init__()
         self.softmax = nn.Softmax(dim=1)
+        # layer for flattening the feature maps
+        self.flat = nn.Flatten(start_dim=2)
+        # change dism of of textual embs to correlate with chans of inception
+        self.chan_reduction = conv1d(256, 128)
 
-    def forward(
-        self, visual_features: torch.Tensor, textual_features: torch.Tensor
-    ) -> Any:
+    def forward(self, visual_features: torch.Tensor, word_embs: torch.Tensor) -> Any:
         """
         Fuse two types of features together to get output for feeding into the classification loss
         :param torch.Tensor visual_features:
-            Feature maps of an image after being processed by discriminator
-        :param torch.Tensor textual_features: Result of text encoder
-        :return: Logits for each word in the picture
+            Feature maps of an image after being processed by Inception encoder. Bx128x17x17
+        :param torch.Tensor word_embs:
+            Word-level embeddings from the text encoder Bx256xL
+        :return: Logits for each word in the picture. BxL
         :rtype: Any
         """
-        textual_features = torch.transpose(textual_features, 1, 2)
-        word_region_correlations = textual_features @ visual_features
+        # make textual and visual features have the same amount of channels
+        word_embs = self.chan_reduction(word_embs)
+        # flattening the feature maps
+        visual_features = self.flat(visual_features)
+        word_embs = torch.transpose(word_embs, 1, 2)
+        word_region_correlations = word_embs @ visual_features
         # normalize across L dimension
         m_norm_l = nn.functional.normalize(word_region_correlations, dim=1)
         # normalize across H*W dimension
@@ -41,33 +49,117 @@ class FeedbackModule(nn.Module):
         return deltas
 
 
+class UnconditionalLogits(nn.Module):
+    """Head for retrieving logits from an image"""
+
+    def __init__(self, n_words: int) -> None:
+        """
+        Initialize modules that reduce the features down to a set of logits
+
+        :param int n_words: Max length of a caption
+        """
+        super().__init__()
+        self.squisher = nn.Sequential(
+            conv2d(128, n_words),  # for reducing the channel dimension
+            nn.Conv2d(n_words, n_words, kernel_size=17),  # to reduce feature maps
+        )
+        # flattening BxLx1x1 into BxL
+        self.flat = nn.Flatten()
+
+    def forward(self, visual_features: torch.Tensor) -> Any:
+        """
+        Compute logits for unconditioned adversarial loss
+
+        :param visual_features: Local features from Inception network. Bx128x17x17
+        :return: Logits for unconditioned adversarial loss. BxL
+        :rtype: Any
+        """
+        # reduce channels and feature maps for visual features
+        visual_features = self.squisher(visual_features)
+        # flatten BxLx1x1 into BxL
+        logits = self.flat(visual_features)
+        return logits
+
+
+class ConditionalLogits(nn.Module):
+    """Logits extractor for conditioned adversarial loss"""
+
+    def __init__(self, n_words: int) -> None:
+        super().__init__()
+        # recording value of L
+        self.n_words = n_words
+        # layer for forming the feature maps out of textual info
+        self.text_to_fm = conv1d(256, 17 * 17)
+        # fitting the size of text channels to the size of visual channels
+        self.chan_aligner = conv2d(1, 128)
+        # for reduced textual + visual features down to 1x1 feature map
+        self.joint_conv = nn.Conv2d(2 * 128, n_words, kernel_size=17)
+        # converting BxLx1x1 into BxL
+        self.flat = nn.Flatten()
+
+    def forward(self, visual_features: torch.Tensor, sent_embs: torch.Tensor) -> Any:
+        """
+        Compute logits for conditional adversarial loss
+
+        :param torch.Tensor visual_features: Features from Inception encoder. Bx128x17x17
+        :param torch.Tensor sent_embs: Sentence embeddings from text encoder. Bx256
+        :return: Logits for conditional adversarial loss. BxL
+        :rtype: Any
+        """
+        # make text and visual features have the same sizes of feature maps
+        # Bx256 -> Bx256x1 -> Bx289x1
+        sent_embs = sent_embs.view(-1, 256, 1)
+        sent_embs = self.text_to_fm(sent_embs)
+        # transform textual info into shape of visual feature maps
+        # Bx289x1 -> Bx1x17x17
+        sent_embs = sent_embs.view(-1, 1, 17, 17)
+        # propagate text embs through 1d conv to
+        # align dims with visual feature maps
+        sent_embs = self.chan_aligner(sent_embs)
+        # unite textual and visual features across the dim of channels
+        cross_features = torch.cat((visual_features, sent_embs), dim=1)
+        # reduce dims down to length of caption and form raw logits
+        cross_features = self.joint_conv(cross_features)
+        # form logits from BxLx1x1 into BxL
+        logits = self.flat(cross_features)
+        return logits
+
+
 class Discriminator(nn.Module):
     """Simple CNN-based discriminator"""
 
-    def __init__(self, emb_len: int) -> None:
+    def __init__(self, n_words: int) -> None:
         """
         Use a pretrained InceptionNet to extract features
 
-        :param int emb_len: Length of textual embedding
+        :param int n_words: Max length of a text caption for an image
         """
         super().__init__()
-        self.encoder = InceptionEncoder(D=emb_len)
-        # skip batch and channel dims, flatten only feature maps
-        self.flat = nn.Flatten(start_dim=2)
-        self.logits = FeedbackModule()
+        self.encoder = InceptionEncoder(D=128)
+        # define different logit extractors for different losses
+        self.logits_word_level = WordLevelLogits()
+        self.logits_uncond = UnconditionalLogits(n_words=n_words)
+        self.logits_cond = ConditionalLogits(n_words=n_words)
 
-    def forward(self, images: torch.Tensor, textual_info: torch.Tensor) -> Any:
+    def forward(
+        self, images: torch.Tensor, word_embs: torch.Tensor, sent_embs: torch.Tensor
+    ) -> Any:
         """
-        Obtain regional features for images and return word logits from that image
-        :param images: Images to be analyzed
-        :param textual_info: Output of RNN (text encoder)
-        :return: Word-level feedback (logits) for presence of text in picture
+        Obtain regional features for images and return logits
+
+        :param torch.Tensor images: Images to be analyzed. Bx3x256x256
+        :param torch.Tensor sent_embs: Sentence-level embeddings from text encoder Bx256
+        :param torch.Tensor word_embs: Word-level embeddings from text encoder Bx256xL
+        :return: Types of logits for different losses. BxL
         :rtype: Any
         """
         # only taking the local features from inception
+        # Bx3x256x256 -> Bx128x17x17
         img_features, _ = self.encoder(images)
-        # flattening the feature maps into BxCx(H*W)
-        img_flat = self.flat(img_features)
         # getting word-level feedback for the generated image
-        logits = self.logits(img_flat, textual_info)
-        return logits
+        logits_word_level = self.logits_word_level(img_features, word_embs)
+        # getting unconditioned adversarial logits
+        logits_uncond = self.logits_uncond(img_features)
+        # computing logits for loss conditioned on sentence-level embeddings
+        logits_cond = self.logits_cond(img_features, sent_embs)
+        return logits_word_level, logits_uncond, logits_cond
