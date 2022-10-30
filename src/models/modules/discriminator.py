@@ -23,23 +23,23 @@ class WordLevelLogits(nn.Module):
         self.chan_reduction = conv1d(256, 128)
 
     def forward(
-        self, visual_features: torch.Tensor, textual_features: torch.Tensor
+        self, visual_features: torch.Tensor, word_embs: torch.Tensor
     ) -> Any:
         """
         Fuse two types of features together to get output for feeding into the classification loss
         :param torch.Tensor visual_features:
             Feature maps of an image after being processed by Inception encoder. Bx128x17x17
-        :param torch.Tensor textual_features:
+        :param torch.Tensor word_embs:
             Word-level embeddings from the text encoder Bx256xL
         :return: Logits for each word in the picture. BxL
         :rtype: Any
         """
         # make textual and visual features have the same amount of channels
-        textual_features = self.chan_reduction(textual_features)
+        word_embs = self.chan_reduction(word_embs)
         # flattening the feature maps
         visual_features = self.flat(visual_features)
-        textual_features = torch.transpose(textual_features, 1, 2)
-        word_region_correlations = textual_features @ visual_features
+        word_embs = torch.transpose(word_embs, 1, 2)
+        word_region_correlations = word_embs @ visual_features
         # normalize across L dimension
         m_norm_l = nn.functional.normalize(word_region_correlations, dim=1)
         # normalize across H*W dimension
@@ -78,7 +78,7 @@ class UnconditionalLogits(nn.Module):
         """
         # reduce channels and feature maps for visual features
         visual_features = self.squisher(visual_features)
-        # flatten Bx17x1x1 into Bx17
+        # flatten BxLx1x1 into BxL
         logits = self.flat(visual_features)
         return logits
 
@@ -97,24 +97,24 @@ class ConditionalLogits(nn.Module):
         # converting BxLx1x1 into BxL
         self.flat = nn.Flatten()
 
-    def forward(self, images: torch.Tensor, textual_info: torch.Tensor) -> Any:
+    def forward(self, visual_features: torch.Tensor, sent_embs: torch.Tensor) -> Any:
         """
         Compute logits for conditional adversarial loss
 
-        :param torch.Tensor images: Features from Inception encoder. Bx128x17x17
-        :param torch.Tensor textual_info: Sentence embeddings from text encoder. Bx256
+        :param torch.Tensor visual_features: Features from Inception encoder. Bx128x17x17
+        :param torch.Tensor sent_embs: Sentence embeddings from text encoder. Bx256
         :return: Logits for conditional adversarial loss. BxL
         :rtype: Any
         """
         # propagate text embs through 1d conv to
         # align dims with visual feature maps
-        textual_info = self.text_conv(textual_info)
+        sent_embs = self.text_conv(sent_embs)
         # transform textual info into shape of visual feature maps
         # Bx289xL -> BxLx289 -> BxLx17x17
-        textual_info = torch.transpose(textual_info, 1, 2)
-        textual_info = textual_info.view(-1, self.n_words, 17, 17)
+        sent_embs = torch.transpose(sent_embs, 1, 2)
+        sent_embs = sent_embs.view(-1, self.n_words, 17, 17)
         # unite textual and visual features across the dim of channels
-        cross_features = torch.cat((images, textual_info), dim=1)
+        cross_features = torch.cat((visual_features, sent_embs), dim=1)
         # reduce dims down to length of caption and form raw logits
         cross_features = self.joint_conv(cross_features)
         # form logits from BxLx1x1 into BxL
@@ -138,12 +138,16 @@ class Discriminator(nn.Module):
         self.logits_uncond = UnconditionalLogits(n_words=n_words)
         self.logits_cond = ConditionalLogits(n_words=n_words)
 
-    def forward(self, images: torch.Tensor, textual_info: torch.Tensor) -> Any:
+    def forward(self,
+                images: torch.Tensor,
+                sent_embs: torch.Tensor,
+                word_embs: torch.Tensor) -> Any:
         """
         Obtain regional features for images and return logits
 
-        :param images: Images to be analyzed. Bx3x256x256
-        :param textual_info: Output of RNN (text encoder). Bx256xL
+        :param torch.Tensor images: Images to be analyzed. Bx3x256x256
+        :param torch.Tensor sent_embs: Sentence-level embeddings from text encoder Bx256
+        :param torch.Tensor word_embs: Word-level embeddings from text encoder Bx256xL
         :return: Types of logits for different losses. BxL
         :rtype: Any
         """
@@ -151,9 +155,9 @@ class Discriminator(nn.Module):
         # Bx3x256x256 -> Bx128x17x17
         img_features, _ = self.encoder(images)
         # getting word-level feedback for the generated image
-        logits_word_level = self.logits_word_level(img_features, textual_info)
+        logits_word_level = self.logits_word_level(img_features, word_embs)
         # getting unconditioned adversarial logits
         logits_uncond = self.logits_uncond(img_features)
-        # computing logits for conditional adversarial loss
-        logits_cond = self.logits_cond(img_features, textual_info)
+        # computing logits for loss conditioned on sentence-level embeddings
+        logits_cond = self.logits_cond(img_features, sent_embs)
         return logits_word_level, logits_uncond, logits_cond
