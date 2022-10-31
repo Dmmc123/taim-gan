@@ -8,42 +8,8 @@ from src.models.modules.image_encoder import InceptionEncoder
 from src.models.modules.generator import Generator
 from src.models.modules.discriminator import Discriminator
 from src.models.modules.image_encoder import VGGEncoder
-from src.models.utils import copy_gen_params
-from src.models.utils import define_optimizers
-from src.models.utils import prepare_labels
+from src.models.utils import copy_gen_params, define_optimizers, prepare_labels, load_params
 # from losses import discriminator_loss, generator_loss
-
-
-def main():
-    def num_params(net):
-        return sum(p.numel() for p in net if p.requires_grad)
-
-    Ng = 32
-    D = 256
-    condition_dim = 100
-    noise_dim = 100
-    vocab_len = 10000
-
-    generator = Generator(Ng, D, condition_dim, noise_dim)
-    discriminator = Discriminator(D)
-    text_encoder = TextEncoder(vocab_len, D, D // 2)
-    image_encoder = InceptionEncoder(D)
-    vgg_encoder = VGGEncoder()
-
-    networks = {}
-    networks['generator'] = generator
-    networks['discriminator'] = discriminator
-    networks['text_encoder'] = text_encoder
-    networks['image_encoder'] = image_encoder
-    networks['vgg_encoder'] = vgg_encoder
-
-
-    for name, net in networks.items():
-        print(f'{name} has {num_params(net.parameters())} parameters')
-
-
-if __name__ == '__main__':
-    main()
 
 def train(data_loader: Any, vocab_len: int, config_dict: dict):
     """
@@ -117,6 +83,9 @@ def train(data_loader: Any, vocab_len: int, config_dict: dict):
 
             if (batch_idx + 1) % 1000 == 0:
                 g_backup_params = copy_gen_params(generator)
+                load_params(generator, g_param_avg)
+                save_image()
+                load_params(generator, g_backup_params)
 
 
 

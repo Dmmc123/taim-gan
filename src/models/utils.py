@@ -35,9 +35,9 @@ def prepare_labels(batch_size: int, device: Any):
 
     return real_labels, fake_labels, match_labels
 
-def load_params(generator: Any, params: Any):
+def load_params(generator: Any, new_params: Any):
     """
-    Function to load the parameters of the generator
+    Function to load new parameters to the generator
     """
-    for p, new_p in zip(generator.parameters(), params):
+    for p, new_p in zip(generator.parameters(), new_params):
         p.data.copy_(new_p)
