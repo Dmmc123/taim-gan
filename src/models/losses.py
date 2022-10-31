@@ -21,7 +21,7 @@ def generator_loss(
     vgg_encoder: Any,
     real_imgs: torch.Tensor,
     device: Any,
-    const_dict: dict[Any, Any],
+    const_dict: dict[str, float],
 ) -> Any:
     """Calculate the loss for the generator.
 
@@ -57,22 +57,23 @@ def generator_loss(
 
         const_dict: The dictionary containing the constants.
     """
-    total_error_g = 0
-    lambda3 = const_dict["lambda3"]
+    lambda1 = const_dict["lambda1"]
+    lambda2 = const_dict["lambda2"]
+    total_error_g = 0.0
 
     cond_logits = logits["fake"]["cond"]
-    cond_err_g = binary_cross_entropy(cond_logits, real_labels)
+    cond_err_g = nn.BCELoss()(cond_logits, real_labels)
 
     uncond_logits = logits["fake"]["uncond"]
-    uncond_err_g = binary_cross_entropy(uncond_logits, real_labels)
+    uncond_err_g = nn.BCELoss()(uncond_logits, real_labels)
 
-    loss_g = (
-        cond_err_g + uncond_err_g
-    )  # add up the conditional and unconditional losses
+    # add up the conditional and unconditional losses
+    loss_g = -0.5 * (cond_err_g + uncond_err_g)
     total_error_g += loss_g
 
     local_incept_feat, global_incept_feat = inception_encoder(fake_imgs)
-    l1_w, l2_w, l1_s, l2_s = damsm_loss(
+    # DAMSM Loss from attnGAN.
+    loss_damsm = damsm_loss(
         local_incept_feat,
         global_incept_feat,
         words_emb,
@@ -82,18 +83,20 @@ def generator_loss(
         class_ids,
         device,
         const_dict,
-    )  # DAMSM Loss from attnGAN.
-
-    loss_damsm = lambda3 * (l1_w + l2_w + l1_s + l2_s)
+    )
 
     total_error_g += loss_damsm
 
     vgg_real = vgg_encoder(real_imgs)  # shape: (batch, 128, 128, 128)
     vgg_fake = vgg_encoder(fake_imgs)  # shape: (batch, 128, 128, 128)
 
-    loss_per = mean_squared_error(vgg_real, vgg_fake)  # perceptual loss
+    loss_per = nn.MSELoss()(vgg_real, vgg_fake)  # perceptual loss
 
-    total_error_g += loss_per / 2.0
+    total_error_g += lambda1 * loss_per
+
+    word_level_loss = nn.BCELoss()(logits["fake"]["word_level"], real_labels)
+    total_error_g += lambda2 * word_level_loss
+
     return total_error_g
 
 
@@ -106,7 +109,7 @@ def damsm_loss(
     cap_lens: torch.Tensor,
     class_ids: torch.Tensor,
     device: Any,
-    const_dict: dict[Any, Any],
+    const_dict: dict[str, float],
 ) -> Any:
     """Calculate the DAMSM loss from the attnGAN paper.
 
@@ -134,37 +137,34 @@ def damsm_loss(
         const_dict: The dictionary containing the constants.
     """
     batch_size = match_labels.size(0)
-    masks = (
-        []
-    )  # Mask mis-match samples, that come from the same class as the real sample ###
+    # Mask mis-match samples, that come from the same class as the real sample
+    masks = []
 
     match_scores = []
     cap_len_list = cap_lens.data.tolist()
     gamma1 = const_dict["gamma1"]
     gamma2 = const_dict["gamma2"]
     gamma3 = const_dict["gamma3"]
+    lambda3 = const_dict["lambda3"]
 
     for i in range(batch_size):
-        mask = (class_ids == class_ids[i]).type(torch.int)
-        mask[
-            i
-        ] = 0  # This ensures that "correct class" index is not included in the mask.
+        mask = (class_ids == class_ids[i]).int()
+        # This ensures that "correct class" index is not included in the mask.
+        mask[i] = 0
         masks.append(mask.reshape(1, -1))  # shape: (1, batch)
 
         numb_words = cap_len_list[i]
-        query_words = (
-            words_emb[i, :, :numb_words].unsqueeze(0).contiguous()
-        )  # shape: (1, D, L), this picks the caption at ith batch index.
-        query_words = query_words.repeat(
-            batch_size, 1, 1
-        )  # shape: (batch, D, L), this expands the same caption for all batch indices.
+        # shape: (1, D, L), this picks the caption at ith batch index.
+        query_words = words_emb[i, :, :numb_words].unsqueeze(0)
+        # shape: (batch, D, L), this expands the same caption for all batch indices.
+        query_words = query_words.repeat(batch_size, 1, 1)
 
         c_i = compute_region_context_vector(
             local_incept_feat, query_words, gamma1
         )  # Taken from attnGAN paper. shape: (batch, D, L)
 
-        query_words = query_words.transpose(1, 2).contiguous()  # shape: (batch, L, D)
-        c_i = c_i.transpose(1, 2).contiguous()  # shape: (batch, L, D)
+        query_words = query_words.transpose(1, 2)  # shape: (batch, L, D)
+        c_i = c_i.transpose(1, 2)  # shape: (batch, L, D)
         query_words = query_words.view(
             batch_size * numb_words, -1
         )  # shape: (batch * L, D)
@@ -185,7 +185,8 @@ def damsm_loss(
     masks = torch.BoolTensor(masks).to(device)  # type: ignore
     match_scores = torch.cat(match_scores, dim=1)  # type: ignore
 
-    match_scores = gamma3 * match_scores  # This corresponds to P(D|Q) from attnGAN.
+    # This corresponds to P(D|Q) from attnGAN.
+    match_scores = gamma3 * match_scores  # type: ignore
     match_scores.data.masked_fill_(  # type: ignore
         masks, -float("inf")
     )  # mask out the scores for mis-matched samples
@@ -194,27 +195,23 @@ def damsm_loss(
         0, 1
     )  # This corresponds to P(Q|D) from attnGAN.
 
-    l1_w = cross_entropy(
-        match_scores, match_labels  # type: ignore
-    )  # This corresponds to L1_w from attnGAN.
-    l2_w = cross_entropy(
-        match_scores_t, match_labels
-    )  # This corresponds to L2_w from attnGAN.
+    # This corresponds to L1_w from attnGAN.
+    l1_w = nn.CrossEntropyLoss()(match_scores, match_labels)
+    # This corresponds to L2_w from attnGAN.
+    l2_w = nn.CrossEntropyLoss()(match_scores_t, match_labels)
 
     global_incept_feat = global_incept_feat.unsqueeze(0)  # shape: (1, batch, D)
     sent_emb = sent_emb.unsqueeze(0)  # shape: (1, batch, D)
 
-    incept_feat_norm = torch.norm(
-        global_incept_feat, 2, dim=2, keepdim=True
-    )  # shape: (1, batch, 1)
-    sent_emb_norm = torch.norm(sent_emb, 2, dim=2, keepdim=True)  # shape: (1, batch, 1)
+    # shape: (1, batch, 1)
+    incept_feat_norm = torch.linalg.norm(global_incept_feat, ord=2, dim=2, keepdim=True)
+    # shape: (1, batch, 1)
+    sent_emb_norm = torch.linalg.norm(sent_emb, ord=2, dim=2, keepdim=True)
 
-    global_match_score = global_incept_feat @ (
-        sent_emb.transpose(1, 2)
-    )  # shape: (1, batch, batch)
-    global_match_norm = incept_feat_norm @ (
-        sent_emb_norm.transpose(1, 2)
-    )  # shape: (1, batch, batch)
+    # shape: (1, batch, batch)
+    global_match_score = global_incept_feat @ (sent_emb.transpose(1, 2))
+    # shape: (1, batch, batch)
+    global_match_norm = incept_feat_norm @ (sent_emb_norm.transpose(1, 2))
 
     global_match_score = (global_match_score / global_match_norm).clamp(min=1e-8)
     global_match_score = gamma3 * global_match_score
@@ -226,14 +223,14 @@ def damsm_loss(
 
     global_match_t = global_match_score.transpose(0, 1)  # shape: (batch, batch)
 
-    l1_s = cross_entropy(
-        global_match_score, match_labels
-    )  # This corresponds to L1_s from attnGAN.
-    l2_s = cross_entropy(
-        global_match_t, match_labels
-    )  # This corresponds to L2_s from attnGAN.
+    # This corresponds to L1_s from attnGAN.
+    l1_s = nn.CrossEntropyLoss()(global_match_score, match_labels)
+    # This corresponds to L2_s from attnGAN.
+    l2_s = nn.CrossEntropyLoss()(global_match_t, match_labels)
 
-    return l1_w, l2_w, l1_s, l2_s
+    loss_damsm = lambda3 * (l1_w + l2_w + l1_s + l2_s)
+
+    return loss_damsm
 
 
 def compute_relevance(c_i: torch.Tensor, query_words: torch.Tensor) -> Any:
@@ -245,15 +242,15 @@ def compute_relevance(c_i: torch.Tensor, query_words: torch.Tensor) -> Any:
     """
     prod = c_i * query_words  # shape: (batch * L, D)
     numr = torch.sum(prod, dim=1)  # shape: (batch * L, 1)
-    norm_c = torch.norm(c_i, 2, dim=1)
-    norm_q = torch.norm(query_words, 2, dim=1)
+    norm_c = torch.linalg.norm(c_i, ord=2, dim=1)
+    norm_q = torch.linalg.norm(query_words, ord=2, dim=1)
     denr = norm_c * norm_q
     r_i = (numr / denr).clamp(min=1e-8).squeeze()  # shape: (batch * L, 1)
     return r_i
 
 
 def compute_region_context_vector(
-    local_incept_feat: torch.Tensor, query_words: torch.Tensor, gamma1: int
+    local_incept_feat: torch.Tensor, query_words: torch.Tensor, gamma1: float
 ) -> Any:
     """Compute the region context vector (c_i) from attnGAN paper.
 
@@ -269,9 +266,8 @@ def compute_region_context_vector(
 
     # Reshape the local inception features to (batch, D, N)
     local_incept_feat = local_incept_feat.view(batch, -1, N)
-    incept_feat_t = local_incept_feat.transpose(
-        1, 2
-    ).contiguous()  # shape: (batch, N, D)
+    # shape: (batch, N, D)
+    incept_feat_t = local_incept_feat.transpose(1, 2)
 
     sim_matrix = incept_feat_t @ query_words  # shape: (batch, N, L)
     sim_matrix = sim_matrix.view(batch * N, L)  # shape: (batch * N, L)
@@ -291,39 +287,6 @@ def compute_region_context_vector(
         local_incept_feat @ alpha_j_t
     )  # shape: (batch, D, L) [summing over N dimension in paper, so we multiply like this]
     return c_i
-
-
-def mean_squared_error(input_tensor: torch.Tensor, target: torch.Tensor) -> Any:
-    """Computes the mean squared error between two tensors.
-
-    Args:
-        input_tensor: The input tensor.
-        target: The target tensor.
-    """
-    return nn.MSELoss()(input_tensor, target)
-
-
-def cross_entropy(input_tensor: torch.Tensor, target: torch.Tensor) -> Any:
-    """Computes the cross entropy loss between the input and the target.
-
-    Args:
-        input_tensor: The input tensor.
-        target: The target tensor.
-    """
-    return nn.CrossEntropyLoss()(input_tensor, target)
-
-
-def binary_cross_entropy(input_tensor: torch.Tensor, target: torch.Tensor) -> Any:
-    """Calculate the binary cross entropy loss.
-
-    Args:
-        input_tensor: The input tensor.
-        target: The target tensor.
-
-    Returns:
-        The binary cross entropy loss.
-    """
-    return nn.BCELoss()(input_tensor, target)
 
 
 def discriminator_loss(
