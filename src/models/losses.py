@@ -187,28 +187,21 @@ def damsm_loss(
     # This corresponds to L2_w from attnGAN.
     l2_w = nn.CrossEntropyLoss()(match_scores_t, match_labels)
 
-    global_incept_feat = global_incept_feat.unsqueeze(0)  # shape: (1, batch, D)
-    sent_emb = sent_emb.unsqueeze(0)  # shape: (1, batch, D)
+    incept_feat_norm = torch.linalg.norm(global_incept_feat, dim=1)
+    sent_emb_norm = torch.linalg.norm(sent_emb, dim=1)
 
-    # shape: (1, batch, 1)
-    incept_feat_norm = torch.linalg.norm(global_incept_feat, ord=2, dim=2, keepdim=True)
-    # shape: (1, batch, 1)
-    sent_emb_norm = torch.linalg.norm(sent_emb, ord=2, dim=2, keepdim=True)
+    # shape: (batch, batch)
+    global_match_score = global_incept_feat @ (sent_emb.T)
 
-    # shape: (1, batch, batch)
-    global_match_score = global_incept_feat @ (sent_emb.transpose(1, 2))
-    # shape: (1, batch, batch)
-    global_match_norm = incept_feat_norm @ (sent_emb_norm.transpose(1, 2))
-
-    global_match_score = (global_match_score / global_match_norm).clamp(min=1e-8)
+    global_match_score = (global_match_score / torch.outer(incept_feat_norm, sent_emb_norm)).clamp(min=1e-8)
     global_match_score = gamma3 * global_match_score
 
-    global_match_score = global_match_score.squeeze()  # shape: (batch, batch)
+    # mask out the scores for mis-matched samples
     global_match_score.data.masked_fill_(  # type: ignore
         masks, -float("inf")
-    )  # mask out the scores for mis-matched samples
+    )  
 
-    global_match_t = global_match_score.transpose(0, 1)  # shape: (batch, batch)
+    global_match_t = global_match_score.T  # shape: (batch, batch)
 
     # This corresponds to L1_s from attnGAN.
     l1_s = nn.CrossEntropyLoss()(global_match_score, match_labels)
