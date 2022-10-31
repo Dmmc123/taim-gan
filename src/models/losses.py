@@ -129,7 +129,6 @@ def damsm_loss(
     masks = []
 
     match_scores = []
-    cap_len_list = cap_lens.data.tolist()
     gamma1 = const_dict["gamma1"]
     gamma2 = const_dict["gamma2"]
     gamma3 = const_dict["gamma3"]
@@ -141,7 +140,7 @@ def damsm_loss(
         mask[i] = 0
         masks.append(mask.reshape(1, -1))  # shape: (1, batch)
 
-        numb_words = cap_len_list[i]
+        numb_words = int(cap_lens[i])
         # shape: (1, D, L), this picks the caption at ith batch index.
         query_words = words_emb[i, :, :numb_words].unsqueeze(0)
         # shape: (batch, D, L), this expands the same caption for all batch indices.
