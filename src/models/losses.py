@@ -20,7 +20,6 @@ def generator_loss(
     class_ids: torch.Tensor,
     vgg_encoder: Any,
     real_imgs: torch.Tensor,
-    device: Any,
     const_dict: dict[str, float],
 ) -> Any:
     """Calculate the loss for the generator.
@@ -53,8 +52,6 @@ def generator_loss(
 
         real_imgs: The Real Images from the dataset. shape: (batch_size, 3, 256, 256)
 
-        device: The device to run the model on.
-
         const_dict: The dictionary containing the constants.
     """
     lambda1 = const_dict["lambda1"]
@@ -81,7 +78,6 @@ def generator_loss(
         match_labels,
         cap_lens,
         class_ids,
-        device,
         const_dict,
     )
 
@@ -108,7 +104,6 @@ def damsm_loss(
     match_labels: torch.Tensor,
     cap_lens: torch.Tensor,
     class_ids: torch.Tensor,
-    device: Any,
     const_dict: dict[str, float],
 ) -> Any:
     """Calculate the DAMSM loss from the attnGAN paper.
@@ -131,8 +126,6 @@ def damsm_loss(
         shape: (batch_size, 1)
 
         class_ids: The class ids for the instance. shape: (batch, 1)
-
-        device: The device to run the model on.
 
         const_dict: The dictionary containing the constants.
     """
@@ -182,7 +175,7 @@ def damsm_loss(
         match_scores.append(r_i)
 
     masks = torch.cat(masks, dim=0)  # type: ignore
-    masks = torch.BoolTensor(masks).to(device)  # type: ignore
+    masks = torch.BoolTensor(masks)  # type: ignore
     match_scores = torch.cat(match_scores, dim=1)  # type: ignore
 
     # This corresponds to P(D|Q) from attnGAN.
