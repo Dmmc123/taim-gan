@@ -8,19 +8,25 @@ from src.models.modules.image_encoder import InceptionEncoder
 from src.models.modules.generator import Generator
 from src.models.modules.discriminator import Discriminator
 from src.models.modules.image_encoder import VGGEncoder
-from src.models.utils import copy_gen_params, define_optimizers, prepare_labels, load_params
+from src.models.utils import copy_gen_params, define_optimizers, prepare_labels, load_params, save_image_and_caption
 # from losses import discriminator_loss, generator_loss
 
-def train(data_loader: Any, vocab_len: int, config_dict: dict):
+def train(data_loader: Any, config_dict: dict):
+    #check whether you need to use mask = (correct_capt == 0) or not.
     """
     Function to train the GAN model
     :param data_loader: Data loader for the dataset
     :param vocab_len: Length of the vocabulary
     :param config_dict: Dictionary containing the configuration parameters
     """
-    Ng, D, condition_dim, noise_dim, disc_lr, gen_lr, batch_size, device, epochs, const_dict = config_dict['Ng'], config_dict['D'],\
-        config_dict['condition_dim'], config_dict['noise_dim'], config_dict['disc_lr'],\
-        config_dict['gen_lr'], config_dict['batch_size'], config_dict['device'], config_dict['epochs'], config_dict['const_dict']
+    Ng, D, condition_dim, noise_dim, disc_lr, gen_lr, batch_size,\
+        device, epochs, vocab_len, ix2word, output_dir, snapshot, const_dict\
+        = config_dict['Ng'], config_dict['D'],config_dict['condition_dim'],\
+        config_dict['noise_dim'], config_dict['disc_lr'],config_dict['gen_lr'],\
+        config_dict['batch_size'], config_dict['device'],config_dict['epochs'],\
+        config_dict['vocab_len'], config_dict['ix2word'],\
+        config_dict['output_dir'], config_dict['snapshot'],\
+        config_dict['const_dict']
     
     smooth_val_gen = const_dict['smooth_val_gen']
     generator = Generator(Ng, D, condition_dim, noise_dim)
@@ -82,46 +88,14 @@ def train(data_loader: Any, vocab_len: int, config_dict: dict):
                     Loss D: {loss_discri.item():.4f}, Loss G: {loss_gen.item():.4f}')
 
             if (batch_idx + 1) % 1000 == 0:
-                g_backup_params = copy_gen_params(generator)
-                load_params(generator, g_param_avg)
-                save_image()
-                load_params(generator, g_backup_params)
+                with torch.no_grad():
+                    g_backup_params = copy_gen_params(generator)
+                    load_params(generator, g_param_avg)
+                    fake_imgs, _, _ = generator(noise, sent_emb, word_emb, global_incept_feat, local_incept_feat, vgg_feat)
+                    save_image_and_caption(fake_imgs, images, correct_capt, ix2word, batch_idx, epoch, output_dir)
+                    load_params(generator, g_backup_params)
 
+            if epoch % snapshot == 0 and epoch != 0:
+                save_model(generator, discriminator, g_param_avg, epoch, output_dir)
 
-
-
-            #check whether you need to use mask = (correct_capt == 0) or not.
-
-
-            # images = images.to(device)
-            # captions = captions.to(device)
-            # lengths = lengths.to(device)
-
-            # # Train the discriminator
-            # optimizer_D.zero_grad()
-            # real_features = image_encoder(images)
-            # fake_features = generator(captions, lengths, g_param_avg)
-            # real_logits = discriminator(real_features)
-            # fake_logits = discriminator(fake_features)
-            # loss_D_real = nn.BCEWithLogitsLoss()(real_logits, labels_real)
-            # loss_D_fake = nn.BCEWithLogitsLoss()(fake_logits, labels_fake)
-            # loss_D = loss_D_real + loss_D_fake
-            # loss_D.backward()
-            # optimizer_D.step()
-
-            # # Train the generator
-            # optimizer_G.zero_grad()
-            # fake_features = generator(captions, lengths, g_param_avg)
-            # fake_logits = discriminator(fake_features)
-            # loss_G = nn.BCEWithLogitsLoss()(fake_logits, labels_real)
-            # loss_G.backward()
-            # optimizer_G.step()
-
-            # Update the moving average of the generator parameters
-            for i, p in enumerate(generator.parameters()):
-                g_param_avg[i] = 0.999 * g_param_avg[i] + 0.001 * p.data
-
-            # Print the losses
-            if batch_idx % 100 == 0:
-                print(f'Epoch: {epoch} | Batch: {batch_idx} | Loss D: {loss_D.item():.4f} | Loss G: {loss_G.item():.4f}')
-
+    save_model(generator, discriminator, g_param_avg, epochs, output_dir)
