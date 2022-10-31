@@ -9,7 +9,7 @@ from torch import nn
 
 
 def generator_loss(
-    discriminator: Any,
+    logits: dict[str, dict[str, torch.Tensor]],
     inception_encoder: Any,
     fake_imgs: torch.Tensor,
     real_labels: torch.Tensor,
@@ -26,7 +26,7 @@ def generator_loss(
     """Calculate the loss for the generator.
 
     Args:
-        discriminator: The discriminator model.
+        logits: Dictionary with fake/real and word-level/uncond/cond logits
 
         inception_encoder: The inception encoder model.
 
@@ -60,10 +60,10 @@ def generator_loss(
     total_error_g = 0
     lambda3 = const_dict["lambda3"]
 
-    cond_logits = discriminator.COND_DNET(fake_imgs, sent_emb)
+    cond_logits = logits["fake"]["cond"]
     cond_err_g = binary_cross_entropy(cond_logits, real_labels)
 
-    uncond_logits = discriminator.UNCOND_DNET(fake_imgs)
+    uncond_logits = logits["fake"]["uncond"]
     uncond_err_g = binary_cross_entropy(uncond_logits, real_labels)
 
     loss_g = (
@@ -91,7 +91,7 @@ def generator_loss(
     vgg_real = vgg_encoder(real_imgs)  # shape: (batch, 128, 128, 128)
     vgg_fake = vgg_encoder(fake_imgs)  # shape: (batch, 128, 128, 128)
 
-    loss_per = mean_squared_error(vgg_real, vgg_fake)
+    loss_per = mean_squared_error(vgg_real, vgg_fake)  # perceptual loss
 
     total_error_g += loss_per / 2.0
     return total_error_g
@@ -324,6 +324,7 @@ def binary_cross_entropy(input_tensor: torch.Tensor, target: torch.Tensor) -> An
         The binary cross entropy loss.
     """
     return nn.BCELoss()(input_tensor, target)
+
 
 def discriminator_loss(
     logits: dict[str, dict[str, torch.Tensor]],
