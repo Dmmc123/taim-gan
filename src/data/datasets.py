@@ -15,9 +15,6 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-nltk.download("punkt")
-nltk.download("averaged_perceptron_tagger")
-
 
 class TextImageDataset(Dataset):  # type: ignore
     """Custom PyTorch Dataset class to load Image and Text data."""
@@ -113,7 +110,7 @@ class TextImageDataset(Dataset):  # type: ignore
             else:
                 word_labels.append(0)
 
-        word_labels = torch.tensor(word_labels, dtype=torch.int64)  # type: ignore
+        word_labels = torch.tensor(word_labels).float()  # type: ignore
 
         curr_class_id = torch.tensor(curr_class_id, dtype=torch.int64).unsqueeze(0)
 

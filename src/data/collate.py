@@ -5,10 +5,7 @@ from typing import Any
 import torch
 from torch.nn.utils.rnn import pad_sequence
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def custom_collate(batch: list[Any]) -> Any:
+def custom_collate(batch: list[Any], device: Any) -> Any:
     """
     Custom collate function to be used in the data loader.
     :param batch: list, with length equal to number of batches.

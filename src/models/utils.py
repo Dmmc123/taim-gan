@@ -45,8 +45,8 @@ def prepare_labels(batch_size: int, max_seq_len: int, device: torch.device) -> A
     """
     Function to prepare the labels for the discriminator and generator.
     """
-    real_labels = torch.FloatTensor(batch_size).fill_(1).to(device)
-    fake_labels = torch.FloatTensor(batch_size).fill_(0).to(device)
+    real_labels = torch.FloatTensor(batch_size, 1).fill_(1).to(device)
+    fake_labels = torch.FloatTensor(batch_size, 1).fill_(0).to(device)
     match_labels = torch.LongTensor(range(batch_size)).to(device)
     fake_word_labels = torch.FloatTensor(batch_size, max_seq_len).fill_(0).to(device)
 

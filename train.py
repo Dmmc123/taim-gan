@@ -1,37 +1,45 @@
 """Code to Initiate training of the model."""
 
 import argparse
+import torch
+import nltk
 from torch.utils.data import DataLoader
 from src.models.train_model import train
 from src.data.datasets import TextImageDataset
 from src.data.collate import custom_collate
 from torchvision import transforms
 from src.config import config_dict, update_config
+from functools import partial
+
+nltk.download("punkt")
+nltk.download("averaged_perceptron_tagger")
 
 
 def main(args):
     """Main function to initiate training."""
-    config_dict = config_dict
+    cfg_dict = config_dict
     # Define dataset and dataloader
     transform = transforms.Compose(
         [
             transforms.Resize(304),
         ]
     )
-    dataset = TextImageDataset(args.data_dir, args.split, args.num_capt, transform)
+    dataset = TextImageDataset(args.data_dir, args.split, int(args.num_capt), transform)
     ix2word = dataset.ix_to_word
     vocab_len = len(ix2word)
-    config_dict = update_config(config_dict, ix2word = ix2word, vocab_len = vocab_len)
+    batch_size = int(args.batch_size)
+    cfg_dict = update_config(cfg_dict, ix2word = ix2word, vocab_len = vocab_len, batch_size = batch_size)
     dataloader = DataLoader(
         dataset,
         batch_size=args.batch_size,
         shuffle=True,
         num_workers=args.num_workers,
-        collate_fn=custom_collate,
+        collate_fn=partial(custom_collate, device = cfg_dict["device"]),
     )
 
     # Train the model
-    train(dataloader, config_dict)
+    with torch.autograd.set_detect_anomaly(True):
+        train(dataloader, cfg_dict)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -40,18 +48,21 @@ if __name__ == "__main__":
         type=str,
         default="data",
         help="Directory containing the dataset",
+        required = True
     )
     parser.add_argument(
         "--split",
         type=str,
         default="train",
         help="Split of dataset to use for training. Can be 'train' or 'test'.",
+        required = True
     )
     parser.add_argument(
         "--num_capt",
         type=int,
         default=5,
         help="Number of captions per image present in the dataset. 5 for COCO, 10 for bird.",
+        required = True
     )
     parser.add_argument(
         "--batch_size",

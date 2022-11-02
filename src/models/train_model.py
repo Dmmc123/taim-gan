@@ -63,11 +63,11 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
     smooth_val_gen = const_dict["smooth_val_gen"]
     lambda4 = const_dict["lambda4"]
-    generator = Generator(Ng, D, condition_dim, noise_dim)
-    discriminator = Discriminator()
-    text_encoder = TextEncoder(vocab_len, D, D // 2)
-    image_encoder = InceptionEncoder(D)
-    vgg_encoder = VGGEncoder()
+    generator = Generator(Ng, D, condition_dim, noise_dim).to(device)
+    discriminator = Discriminator().to(device)
+    text_encoder = TextEncoder(vocab_len, D, D // 2).to(device)
+    image_encoder = InceptionEncoder(D).to(device)
+    vgg_encoder = VGGEncoder(device).to(device)
 
     g_param_avg = copy_gen_params(generator)
 
@@ -89,7 +89,6 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
             )
 
             noise = torch.randn(batch_size, noise_dim).to(device)
-
             word_emb, sent_emb = text_encoder(correct_capt)
             word_emb, sent_emb = word_emb.detach(), sent_emb.detach()
 
@@ -114,6 +113,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
             logits_word, logits_uncond, logits_cond = discriminator(
                 images, word_emb, sent_emb
             )
+
             fake_logits_word, fake_logits_uncond, fake_logits_cond = discriminator(
                 fake_imgs.detach(), word_emb, sent_emb
             )
@@ -124,7 +124,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
                     "uncond": fake_logits_uncond,
                     "cond": fake_logits_cond,
                 },
-                "true": {
+                "real": {
                     "word_level": logits_word,
                     "uncond": logits_uncond,
                     "cond": logits_cond,
@@ -140,7 +140,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
             optimizer_d.zero_grad()
             loss_discri = discriminator_loss(logits, labels_discri, lambda4)
 
-            loss_discri.backward()
+            loss_discri.backward(retain_graph=True)
             optimizer_d.step()
 
             # Update Generator
@@ -150,6 +150,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
                 local_fake_incept_feat,
                 global_fake_incept_feat,
                 labels_real,
+                word_labels,
                 word_emb,
                 sent_emb,
                 labels_match,

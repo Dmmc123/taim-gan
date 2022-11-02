@@ -6,14 +6,8 @@ import torch
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-config_path = Path(__file__).parent.parent.absolute()
-output_path = config_path / "models"
-
-print(type(output_path))
-
-output_path = output_path / "generated" / "model.pth"
-print(output_path)
-
+repo_path = Path(__file__).parent.parent.absolute()
+output_path = repo_path / "models"
 
 config_dict = {
     "Ng": 32,
