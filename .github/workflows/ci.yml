@@ -70,6 +70,6 @@ jobs:
         id: cache-virtualenv
 
       - name: Run pytest
-        run: coverage run -m --source src pytest tests
+        run: coverage run -m --source src/models/modules pytest tests
       - name: Report coverage
         run: coverage report -m --skip-empty

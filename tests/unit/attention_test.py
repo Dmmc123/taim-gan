@@ -34,5 +34,6 @@ def test_spatial_attention(batch_num, D, T, D_hat, N):
     # inputs
     e = torch.randn(batch_num, D, T)
     h = torch.randn(batch_num, D_hat, N)
-    c = att(e, h)
+    mask = torch.randint(0, 2, (batch_num, T)).bool()
+    c = att(e, h, mask=mask)
     assert c.size(1) == D_hat and c.size(2) == N, "Input of visual features should not change"

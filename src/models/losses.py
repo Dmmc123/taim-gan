@@ -193,13 +193,13 @@ def damsm_loss(
     # shape: (batch, batch)
     global_match_score = global_incept_feat @ (sent_emb.T)
 
-    global_match_score = (global_match_score / torch.outer(incept_feat_norm, sent_emb_norm)).clamp(min=1e-8)
+    global_match_score = (
+        global_match_score / torch.outer(incept_feat_norm, sent_emb_norm)
+    ).clamp(min=1e-8)
     global_match_score = gamma3 * global_match_score
 
     # mask out the scores for mis-matched samples
-    global_match_score.data.masked_fill_(  # type: ignore
-        masks, -float("inf")
-    )  
+    global_match_score.data.masked_fill_(masks, -float("inf"))  # type: ignore
 
     global_match_t = global_match_score.T  # shape: (batch, batch)
 
