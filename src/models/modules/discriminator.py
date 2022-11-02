@@ -77,17 +77,15 @@ class UnconditionalLogits(nn.Module):
 class ConditionalLogits(nn.Module):
     """Logits extractor for conditioned adversarial loss"""
 
-    def __init__(self, n_words: int) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        # recording value of L
-        self.n_words = n_words
         # layer for forming the feature maps out of textual info
         self.text_to_fm = conv1d(256, 17 * 17)
         # fitting the size of text channels to the size of visual channels
         self.chan_aligner = conv2d(1, 128)
         # for reduced textual + visual features down to 1x1 feature map
-        self.joint_conv = nn.Conv2d(2 * 128, n_words, kernel_size=17)
-        # converting BxLx1x1 into BxL
+        self.joint_conv = nn.Conv2d(2 * 128, 1, kernel_size=17)
+        # converting Bx1x1x1 into Bx1
         self.flat = nn.Flatten()
 
     def forward(self, visual_features: torch.Tensor, sent_embs: torch.Tensor) -> Any:
@@ -113,7 +111,7 @@ class ConditionalLogits(nn.Module):
         cross_features = torch.cat((visual_features, sent_embs), dim=1)
         # reduce dims down to length of caption and form raw logits
         cross_features = self.joint_conv(cross_features)
-        # form logits from BxLx1x1 into BxL
+        # form logits from Bx1x1x1 into Bx1
         logits = self.flat(cross_features)
         return logits
 
@@ -121,18 +119,14 @@ class ConditionalLogits(nn.Module):
 class Discriminator(nn.Module):
     """Simple CNN-based discriminator"""
 
-    def __init__(self, n_words: int) -> None:
-        """
-        Use a pretrained InceptionNet to extract features
-
-        :param int n_words: Max length of a text caption for an image
-        """
+    def __init__(self) -> None:
+        """Use a pretrained InceptionNet to extract features"""
         super().__init__()
         self.encoder = InceptionEncoder(D=128)
         # define different logit extractors for different losses
         self.logits_word_level = WordLevelLogits()
-        self.logits_uncond = UnconditionalLogits(n_words=n_words)
-        self.logits_cond = ConditionalLogits(n_words=n_words)
+        self.logits_uncond = UnconditionalLogits()
+        self.logits_cond = ConditionalLogits()
 
     def forward(
         self, images: torch.Tensor, word_embs: torch.Tensor, sent_embs: torch.Tensor
@@ -143,7 +137,11 @@ class Discriminator(nn.Module):
         :param torch.Tensor images: Images to be analyzed. Bx3x256x256
         :param torch.Tensor sent_embs: Sentence-level embeddings from text encoder Bx256
         :param torch.Tensor word_embs: Word-level embeddings from text encoder Bx256xL
-        :return: Types of logits for different losses. BxL
+        :return:
+            Types of logits for different losses:
+                (1) Word level logits. BxL (presence of each word in image)
+                (2) Unconditional logits. Bx1 (image real/fake)
+                (3) Conditional logits. Bx1 (image real/fake)
         :rtype: Any
         """
         # only taking the local features from inception
