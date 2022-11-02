@@ -22,7 +22,7 @@ def test_d(batch_num, num_words):
     # generate contextual embeddings of the same channels
     w = torch.rand((batch_num, C, num_words))
     s = torch.rand((batch_num, C))
-    D = Discriminator(n_words=num_words)
+    D = Discriminator()
     logits_word_level, logits_uncond, logits_cond = D(v, w, s)
-    assert logits_word_level.size() == logits_uncond.size() == logits_cond.size() == (batch_num, num_words), \
-        "output dims should never change"
+    assert logits_word_level.size() == (batch_num, num_words), "for word logits dims should be BxL"
+    assert logits_uncond.size() == logits_cond.size() == (batch_num, 1), "for real/fake logits dims should be Bx1"

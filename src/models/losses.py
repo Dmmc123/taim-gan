@@ -193,13 +193,13 @@ def damsm_loss(
     # shape: (batch, batch)
     global_match_score = global_incept_feat @ (sent_emb.T)
 
-    global_match_score = (global_match_score / torch.outer(incept_feat_norm, sent_emb_norm)).clamp(min=1e-8)
+    global_match_score = (
+        global_match_score / torch.outer(incept_feat_norm, sent_emb_norm)
+    ).clamp(min=1e-8)
     global_match_score = gamma3 * global_match_score
 
     # mask out the scores for mis-matched samples
-    global_match_score.data.masked_fill_(  # type: ignore
-        masks, -float("inf")
-    )  
+    global_match_score.data.masked_fill_(masks, -float("inf"))  # type: ignore
 
     global_match_t = global_match_score.T  # shape: (batch, batch)
 
@@ -271,8 +271,7 @@ def compute_region_context_vector(
 
 def discriminator_loss(
     logits: dict[str, dict[str, torch.Tensor]],
-    true_labels: torch.Tensor,
-    fake_labels: torch.Tensor,
+    labels: dict[str, dict[str, torch.Tensor]],
     lambda_4: float = 1.0,
 ) -> Any:
     """
@@ -280,8 +279,36 @@ def discriminator_loss(
 
     :param dict[str, dict[str, torch.Tensor]] logits:
         Dictionary with fake/real and word-level/uncond/cond logits
-    :param torch.Tensor true_labels: True labels
-    :param torch.Tensor fake_labels: Fake labels
+
+        Example:
+
+        logits = {
+            "fake": {
+                "word_level": torch.Tensor (BxL)
+                "uncond": torch.Tensor (Bx1)
+                "cond": torch.Tensor (Bx1)
+            },
+            "true": {
+                "word_level": torch.Tensor (BxL)
+                "uncond": torch.Tensor (Bx1)
+                "cond": torch.Tensor (Bx1)
+            },
+        }
+    :param dict[str, dict[str, torch.Tensor]] labels:
+        Dictionary with fake/real and word-level/image labels
+
+        Example:
+
+        labels = {
+            "fake": {
+                "word_level": torch.Tensor (BxL)
+                "image": torch.Tensor (Bx1)
+            },
+            "real": {
+                "word_level": torch.Tensor (BxL)
+                "image": torch.Tensor (Bx1)
+            },
+        }
     :param float lambda_4: Hyperparameter for word loss in paper
     :return: Discriminator objective loss
     :rtype: Any
@@ -290,14 +317,14 @@ def discriminator_loss(
     bce_logits = nn.BCEWithLogitsLoss()
     bce = nn.BCELoss()
     # calculate word-level loss
-    word_loss = bce(logits["real"]["word_level"], true_labels)
-    word_loss += bce(logits["fake"]["word_level"], fake_labels)
+    word_loss = bce(logits["real"]["word_level"], labels["real"]["word_level"])
+    word_loss += bce(logits["fake"]["word_level"], labels["fake"]["word_level"])
     # calculate unconditional adversarial loss
-    uncond_loss = bce_logits(logits["real"]["uncond"], true_labels)
-    uncond_loss += bce_logits(logits["fake"]["uncond"], fake_labels)
+    uncond_loss = bce_logits(logits["real"]["uncond"], labels["real"]["image"])
+    uncond_loss += bce_logits(logits["fake"]["uncond"], labels["fake"]["image"])
     # calculate conditional adversarial loss
-    cond_loss = bce_logits(logits["real"]["cond"], true_labels)
-    cond_loss += bce_logits(logits["fake"]["cond"], fake_labels)
+    cond_loss = bce_logits(logits["real"]["cond"], labels["real"]["image"])
+    cond_loss += bce_logits(logits["fake"]["cond"], labels["fake"]["image"])
     return -1 / 2 * (uncond_loss + cond_loss) + lambda_4 * word_loss
 
 def KL_loss(mu_tensor: torch.Tensor, logvar: torch.Tensor) -> Any:
