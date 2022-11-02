@@ -52,18 +52,11 @@ class WordLevelLogits(nn.Module):
 class UnconditionalLogits(nn.Module):
     """Head for retrieving logits from an image"""
 
-    def __init__(self, n_words: int) -> None:
-        """
-        Initialize modules that reduce the features down to a set of logits
-
-        :param int n_words: Max length of a caption
-        """
+    def __init__(self) -> None:
+        """Initialize modules that reduce the features down to a set of logits"""
         super().__init__()
-        self.squisher = nn.Sequential(
-            conv2d(128, n_words),  # for reducing the channel dimension
-            nn.Conv2d(n_words, n_words, kernel_size=17),  # to reduce feature maps
-        )
-        # flattening BxLx1x1 into BxL
+        self.conv = nn.Conv2d(128, 1, kernel_size=17)
+        # flattening BxLx1x1 into Bx1
         self.flat = nn.Flatten()
 
     def forward(self, visual_features: torch.Tensor) -> Any:
@@ -71,12 +64,12 @@ class UnconditionalLogits(nn.Module):
         Compute logits for unconditioned adversarial loss
 
         :param visual_features: Local features from Inception network. Bx128x17x17
-        :return: Logits for unconditioned adversarial loss. BxL
+        :return: Logits for unconditioned adversarial loss. Bx1
         :rtype: Any
         """
         # reduce channels and feature maps for visual features
-        visual_features = self.squisher(visual_features)
-        # flatten BxLx1x1 into BxL
+        visual_features = self.conv(visual_features)
+        # flatten Bx1x1x1 into Bx1
         logits = self.flat(visual_features)
         return logits
 
