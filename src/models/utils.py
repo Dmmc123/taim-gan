@@ -2,6 +2,7 @@
 
 import torch
 import numpy as np
+import pathlib
 from typing import Any
 from copy import deepcopy
 from torch import optim
@@ -9,6 +10,7 @@ from PIL import Image
 from src.models.modules.generator import Generator
 from src.models.modules.discriminator import Discriminator
 from pathlib import Path
+
 
 def copy_gen_params(generator: Generator) -> Any:
     """
@@ -70,7 +72,7 @@ def get_captions(captions: torch.Tensor, ix2word: dict):
     captions = [[ix2word[ix] for ix in cap if ix != 0] for cap in captions]
     return captions
 
-def save_model(generator: Generator, discriminator: Discriminator, params: Any, epoch: int, output_dir: str) -> None:
+def save_model(generator: Generator, discriminator: Discriminator, params: Any, epoch: int, output_dir: pathlib.PosixPath) -> None:
     """
     Function to save the model.
     :param generator: Generator model
@@ -79,17 +81,17 @@ def save_model(generator: Generator, discriminator: Discriminator, params: Any, 
     :param epoch: Epoch number
     :param output_dir: Output directory
     """
-    output_path = output_dir + "weights/"
+    output_path = output_dir / "weights/"
     backup_para = copy_gen_params(generator)
     load_params(generator, params)
     Path(output_path).mkdir(parents=True, exist_ok=True)
-    torch.save(generator.state_dict(), output_path + f"generator_epoch_{epoch}.pth")
+    torch.save(generator.state_dict(), output_path / f"generator_epoch_{epoch}.pth")
     load_params(generator, backup_para)
-    torch.save(discriminator.state_dict(), output_path + f"discriminator_epoch_{epoch}.pth")
+    torch.save(discriminator.state_dict(), output_path / f"discriminator_epoch_{epoch}.pth")
     print(f"Model saved at epoch {epoch}.")
 
 def save_image_and_caption(fake_img_tensor: torch.Tensor, img_tensor: torch.Tensor, captions: torch.Tensor, ix2word: dict, batch_idx: int,\
-    epoch: int, output_dir: str) -> None:
+    epoch: int, output_dir: pathlib.PosixPath) -> None:
     """
     Function to save an image and its corresponding caption.
     :param fake_img_tensor: Tensor containing the generated image (shape: (batch_size, channels, height, width))
@@ -110,9 +112,9 @@ def save_image_and_caption(fake_img_tensor: torch.Tensor, img_tensor: torch.Tens
         img = Image.fromarray(img_arr[i])
         fake_img = Image.fromarray(fake_img_arr[i])
         
-        fake_img_path = output_path + f"generated/{epoch}_epochs/{batch_idx}_batch/{i+1}.png"
-        img_path = output_path + f"real/{epoch}_epochs/{batch_idx}_batch/{i+1}.png"
-        text_path = output_path_text + f"text/{epoch}_epochs/{batch_idx}_batch/captions.txt"
+        fake_img_path = output_path / f"generated/{epoch}_epochs/{batch_idx}_batch/{i+1}.png"
+        img_path = output_path / f"real/{epoch}_epochs/{batch_idx}_batch/{i+1}.png"
+        text_path = output_path_text / f"text/{epoch}_epochs/{batch_idx}_batch/captions.txt"
 
         Path(fake_img_path).parent.mkdir(parents=True, exist_ok=True)
         Path(img_path).parent.mkdir(parents=True, exist_ok=True)
