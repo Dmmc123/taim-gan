@@ -14,7 +14,7 @@ def custom_collate(batch: list[Any]) -> Any:
     :param batch: list, with length equal to number of batches.
     :return: processed batch of data [add padding to text, stack tensors in batch]
     """
-    img, correct_capt, curr_class, wrong_capt, wrong_class, word_labels = zip(*batch)
+    img, correct_capt, curr_class, word_labels = zip(*batch)
     batched_img = torch.stack(img, dim=0).to(
         device
     )  # shape: (batch_size, 3, height, width)
@@ -31,17 +31,6 @@ def custom_collate(batch: list[Any]) -> Any:
     batched_curr_class = torch.stack(curr_class, dim=0).to(
         device
     )  # shape: (batch_size, 1)
-    wrong_capt_len = torch.tensor(
-        [len(capt) for capt in wrong_capt], dtype=torch.int64
-    ).unsqueeze(
-        1
-    )  # shape: (batch_size, 1)
-    batched_wrong_capt = pad_sequence(wrong_capt, batch_first=True, padding_value=0).to(
-        device
-    )  # shape: (batch_size, max_seq_len)
-    batched_wrong_class = torch.stack(wrong_class, dim=0).to(
-        device
-    )  # shape: (batch_size, 1)
     batched_word_labels = pad_sequence(
         word_labels, batch_first=True, padding_value=0
     ).to(
@@ -52,8 +41,5 @@ def custom_collate(batch: list[Any]) -> Any:
         batched_correct_capt,
         correct_capt_len,
         batched_curr_class,
-        batched_wrong_capt,
-        wrong_capt_len,
-        batched_wrong_class,
         batched_word_labels,
     )
