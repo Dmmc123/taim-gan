@@ -299,3 +299,14 @@ def discriminator_loss(
     cond_loss = bce_logits(logits["real"]["cond"], true_labels)
     cond_loss += bce_logits(logits["fake"]["cond"], fake_labels)
     return -1 / 2 * (uncond_loss + cond_loss) + lambda_4 * word_loss
+
+def KL_loss(mu_tensor: torch.Tensor, logvar: torch.Tensor) -> Any:
+    """
+    Calculate KL loss
+
+    :param torch.Tensor mu_tensor: Mean of latent distribution
+    :param torch.Tensor logvar: Log variance of latent distribution
+    :return: KL loss [-0.5 * (1 + log(sigma) - mu^2 - sigma^2)]
+    :rtype: Any
+    """
+    return torch.mean( -0.5 * (1 + 0.5 * logvar - mu_tensor.pow(2) - torch.exp(logvar)) ) 
