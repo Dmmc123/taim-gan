@@ -4,7 +4,6 @@ import torch
 
 import pytest
 
-
 @pytest.mark.parametrize(
     argnames=("D", "batch"),
     argvalues=(

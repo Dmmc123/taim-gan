@@ -1,6 +1,6 @@
 """Generator Module"""
 
-from typing import Any
+from typing import Any, Optional
 
 import torch
 from torch import nn
@@ -76,6 +76,7 @@ class InitStageG(nn.Module):
         global_inception: torch.Tensor,
         local_upsampled_inception: torch.Tensor,
         word_embeddings: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
     ) -> Any:
         """
         :param noise: Noise tensor
@@ -83,6 +84,7 @@ class InitStageG(nn.Module):
         :param global_inception: Global inception feature
         :param local_upsampled_inception: Local inception feature, upsampled to 32 x 32
         :param word_embeddings: Word embeddings [shape: D x L or D x T]
+        :param mask: Mask for padding tokens
         :return: Hidden Image feature map Tensor of 64 x 64 size
         """
         noise_concat = torch.cat((noise, condition), 1)
@@ -97,7 +99,7 @@ class InitStageG(nn.Module):
         )  # this reshaping is done as attention module expects this shape.
 
         spatial_att_feat = self.spatial_att(
-            word_embeddings, hidden_32_view
+            word_embeddings, hidden_32_view, mask
         )  # spatial att shape: (batch, D^, 32 * 32)
         channel_att_feat = self.channel_att(
             spatial_att_feat, word_embeddings
@@ -165,19 +167,24 @@ class NextStageG(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(
-        self, hidden_feat: Any, word_embeddings: torch.Tensor, vgg64_feat: torch.Tensor
+        self,
+        hidden_feat: Any,
+        word_embeddings: torch.Tensor,
+        vgg64_feat: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
     ) -> Any:
         """
         :param hidden_feat: Hidden feature from previous generator stage [i.e. hidden_64]
         :param word_embeddings: Word embeddings
         :param vgg64_feat: VGG feature map of size 64 x 64
+        :param mask: Mask for the padding tokens
         :return: Image feature map of size 256 x 256
         """
         hidden_view = hidden_feat.view(
             hidden_feat.shape[0], -1, hidden_feat.shape[2] * hidden_feat.shape[3]
         )  # reshape to pass into attention modules.
         spatial_att_feat = self.spatial_att(
-            word_embeddings, hidden_view
+            word_embeddings, hidden_view, mask
         )  # spatial att shape: (batch, D^, 64 * 64), or D^ x N
         channel_att_feat = self.channel_att(
             spatial_att_feat, word_embeddings
@@ -261,6 +268,7 @@ class Generator(nn.Module):
         global_inception_feat: torch.Tensor,
         local_inception_feat: torch.Tensor,
         vgg_feat: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
     ) -> Any:
         """
         :param noise: Noise vector [shape: (batch, noise_dim)]
@@ -269,18 +277,19 @@ class Generator(nn.Module):
         :param global_inception_feat: Global Inception feature map [shape: (batch, D)]
         :param local_inception_feat: Local Inception feature map [shape: (batch, D, 17, 17)]
         :param vgg_feat: VGG feature map [shape: (batch, D // 2 = 128, 128, 128)]
+        :param mask: Mask for the padding tokens
         :return: Final fake image
         """
         c_hat, mu_tensor, logvar = self.cond_augment(sentence_embeddings)
         hidden_32 = self.inception_img_upsample(local_inception_feat)
 
         hidden_64 = self.hidden_net1(
-            noise, c_hat, global_inception_feat, hidden_32, word_embeddings
+            noise, c_hat, global_inception_feat, hidden_32, word_embeddings, mask
         )
 
         vgg_64 = self.vgg_downsample(vgg_feat)
 
-        hidden_256 = self.hidden_net2(hidden_64, word_embeddings, vgg_64)
+        hidden_256 = self.hidden_net2(hidden_64, word_embeddings, vgg_64, mask)
 
         vgg_128 = self.upsample1(vgg_64)
         vgg_256 = self.upsample2(vgg_128)

@@ -13,6 +13,7 @@ def generator_loss(
     local_fake_incept_feat: torch.Tensor,
     global_fake_incept_feat: torch.Tensor,
     real_labels: torch.Tensor,
+    word_labels: torch.Tensor,
     words_emb: torch.Tensor,
     sent_emb: torch.Tensor,
     match_labels: torch.Tensor,
@@ -33,6 +34,8 @@ def generator_loss(
 
         real_labels: Label for "real" image as predicted by discriminator,
         this is a tensor of ones. [shape: (batch_size, 1)].
+
+        word_labels: POS tagged word labels for the captions. [shape: (batch_size, L)]
 
         words_emb: The embeddings for all the words in the captions.
         shape: (batch_size, embedding_size, max_caption_length)
@@ -58,13 +61,13 @@ def generator_loss(
     total_error_g = 0.0
 
     cond_logits = logits["fake"]["cond"]
-    cond_err_g = nn.BCELoss()(cond_logits, real_labels)
+    cond_err_g = nn.BCEWithLogitsLoss()(cond_logits, real_labels)
 
     uncond_logits = logits["fake"]["uncond"]
-    uncond_err_g = nn.BCELoss()(uncond_logits, real_labels)
+    uncond_err_g = nn.BCEWithLogitsLoss()(uncond_logits, real_labels)
 
     # add up the conditional and unconditional losses
-    loss_g = -0.5 * (cond_err_g + uncond_err_g)
+    loss_g = 0.5 * (cond_err_g + uncond_err_g)
     total_error_g += loss_g
 
     # DAMSM Loss from attnGAN.
@@ -85,7 +88,7 @@ def generator_loss(
 
     total_error_g += lambda1 * loss_per
 
-    word_level_loss = nn.BCELoss()(logits["fake"]["word_level"], real_labels)
+    word_level_loss = nn.BCELoss()(logits["fake"]["word_level"], word_labels)
     total_error_g += lambda2 * word_level_loss
 
     return total_error_g
@@ -152,10 +155,10 @@ def damsm_loss(
 
         query_words = query_words.transpose(1, 2)  # shape: (batch, L, D)
         c_i = c_i.transpose(1, 2)  # shape: (batch, L, D)
-        query_words = query_words.view(
+        query_words = query_words.reshape(
             batch_size * numb_words, -1
         )  # shape: (batch * L, D)
-        c_i = c_i.view(batch_size * numb_words, -1)  # shape: (batch * L, D)
+        c_i = c_i.reshape(batch_size * numb_words, -1)  # shape: (batch * L, D)
 
         r_i = compute_relevance(
             c_i, query_words
@@ -168,8 +171,7 @@ def damsm_loss(
         )  # This is image-text matching score b/w whole image and caption, shape: (batch, 1)
         match_scores.append(r_i)
 
-    masks = torch.cat(masks, dim=0)  # type: ignore
-    masks = torch.BoolTensor(masks)  # type: ignore
+    masks = torch.cat(masks, dim=0).bool()  # type: ignore
     match_scores = torch.cat(match_scores, dim=1)  # type: ignore
 
     # This corresponds to P(D|Q) from attnGAN.
@@ -256,7 +258,7 @@ def compute_region_context_vector(
     sim_matrix = sim_matrix.view(batch, N, L)  # shape: (batch, N, L)
 
     sim_matrix = torch.transpose(sim_matrix, 1, 2)  # shape: (batch, L, N)
-    sim_matrix = sim_matrix.view(batch * L, N)  # shape: (batch * L, N)
+    sim_matrix = sim_matrix.reshape(batch * L, N)  # shape: (batch * L, N)
 
     alpha_j = gamma1 * sim_matrix  # shape: (batch * L, N)
     alpha_j = nn.Softmax(dim=1)(alpha_j)  # shape: (batch * L, N)
@@ -288,7 +290,7 @@ def discriminator_loss(
                 "uncond": torch.Tensor (Bx1)
                 "cond": torch.Tensor (Bx1)
             },
-            "true": {
+            "real": {
                 "word_level": torch.Tensor (BxL)
                 "uncond": torch.Tensor (Bx1)
                 "cond": torch.Tensor (Bx1)
@@ -325,4 +327,16 @@ def discriminator_loss(
     # calculate conditional adversarial loss
     cond_loss = bce_logits(logits["real"]["cond"], labels["real"]["image"])
     cond_loss += bce_logits(logits["fake"]["cond"], labels["fake"]["image"])
-    return -1 / 2 * (uncond_loss + cond_loss) + lambda_4 * word_loss
+    return 1 / 2 * (uncond_loss + cond_loss) + lambda_4 * word_loss
+
+
+def kl_loss(mu_tensor: torch.Tensor, logvar: torch.Tensor) -> Any:
+    """
+    Calculate KL loss
+
+    :param torch.Tensor mu_tensor: Mean of latent distribution
+    :param torch.Tensor logvar: Log variance of latent distribution
+    :return: KL loss [-0.5 * (1 + log(sigma) - mu^2 - sigma^2)]
+    :rtype: Any
+    """
+    return torch.mean(-0.5 * (1 + 0.5 * logvar - mu_tensor.pow(2) - torch.exp(logvar)))

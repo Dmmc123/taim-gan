@@ -15,9 +15,6 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-nltk.download("punkt")
-nltk.download("averaged_perceptron_tagger")
-
 
 class TextImageDataset(Dataset):  # type: ignore
     """Custom PyTorch Dataset class to load Image and Text data."""
@@ -76,8 +73,6 @@ class TextImageDataset(Dataset):  # type: ignore
         :return img_tensor: image tensor
         :return correct_caption: correct caption for the image [list of word indices]
         :return curr_class_id: class id of the image
-        :return wrong_caption: wrong caption for the image [list of word indices]
-        :return wrong_class_id: class id of the wrong caption
         :return word_labels: POS_tagged word labels [1 for noun and adjective, 0 else]
 
         """
@@ -100,17 +95,6 @@ class TextImageDataset(Dataset):  # type: ignore
         correct_caption = torch.tensor(self.captions[rand_sent_idx], dtype=torch.int64)
         num_words = len(correct_caption)
 
-        wrong_idx = np.random.randint(0, len(self.file_names))
-        wrong_class_id = self.class_ids[wrong_idx]
-        while wrong_class_id == curr_class_id:
-            wrong_idx = np.random.randint(0, len(self.file_names))
-            wrong_class_id = self.class_ids[wrong_idx]
-
-        wrong_sent_idx = np.random.randint(0, self.num_captions_per_image)
-        wrong_sent_idx = wrong_idx * self.num_captions_per_image + wrong_sent_idx
-
-        wrong_caption = torch.tensor(self.captions[wrong_sent_idx], dtype=torch.int64)
-
         capt_token_list = []
         for i in range(num_words):
             capt_token_list.append(self.ix_to_word[correct_caption[i].item()])
@@ -126,17 +110,14 @@ class TextImageDataset(Dataset):  # type: ignore
             else:
                 word_labels.append(0)
 
-        word_labels = torch.tensor(word_labels, dtype=torch.int64)  # type: ignore
+        word_labels = torch.tensor(word_labels).float()  # type: ignore
 
         curr_class_id = torch.tensor(curr_class_id, dtype=torch.int64).unsqueeze(0)
-        wrong_class_id = torch.tensor(wrong_class_id, dtype=torch.int64).unsqueeze(0)
 
         return (
             img_tensor,
             correct_caption,
             curr_class_id,
-            wrong_caption,
-            wrong_class_id,
             word_labels,
         )
 

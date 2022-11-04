@@ -119,12 +119,12 @@ class VGGEncoder(nn.Module):
         super().__init__()
         self.select = "8"  ## We want to get the output of the 8th layer in VGG.
 
-        model = torch.hub.load("pytorch/vision:v0.10.0", "vgg16", pretrained=True)
+        self.model = torch.hub.load("pytorch/vision:v0.10.0", "vgg16", pretrained=True)
 
-        for param in model.parameters():
+        for param in self.model.parameters():
             param.resquires_grad = False
 
-        self.vgg_modules = model.features._modules
+        self.vgg_modules = self.model.features._modules
 
     def forward(self, image_tensor: torch.Tensor) -> Any:
         """
