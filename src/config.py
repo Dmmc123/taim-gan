@@ -20,7 +20,7 @@ config_dict = {
     "device": device,
     "epochs": 200,
     "output_dir": output_path,
-    "snapshot": 15,
+    "snapshot": 5,
     "const_dict": {
         "smooth_val_gen": 0.999,
         "lambda1": 1,

@@ -67,7 +67,7 @@ def generator_loss(
     uncond_err_g = nn.BCEWithLogitsLoss()(uncond_logits, real_labels)
 
     # add up the conditional and unconditional losses
-    loss_g = -0.5 * (cond_err_g + uncond_err_g)
+    loss_g = 0.5 * (cond_err_g + uncond_err_g)
     total_error_g += loss_g
 
     # DAMSM Loss from attnGAN.
@@ -172,7 +172,7 @@ def damsm_loss(
         match_scores.append(r_i)
 
     masks = torch.cat(masks, dim=0)  # type: ignore
-    masks = torch.tensor(masks, dtype = torch.bool)  # type: ignore
+    masks = torch.tensor(masks, dtype=torch.bool)  # type: ignore
     match_scores = torch.cat(match_scores, dim=1)  # type: ignore
 
     # This corresponds to P(D|Q) from attnGAN.
@@ -328,7 +328,7 @@ def discriminator_loss(
     # calculate conditional adversarial loss
     cond_loss = bce_logits(logits["real"]["cond"], labels["real"]["image"])
     cond_loss += bce_logits(logits["fake"]["cond"], labels["fake"]["image"])
-    return -1 / 2 * (uncond_loss + cond_loss) + lambda_4 * word_loss
+    return 1 / 2 * (uncond_loss + cond_loss) + lambda_4 * word_loss
 
 
 def kl_loss(mu_tensor: torch.Tensor, logvar: torch.Tensor) -> Any:

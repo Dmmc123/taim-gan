@@ -5,6 +5,7 @@ from typing import Any
 import torch
 from torch.nn.utils.rnn import pad_sequence
 
+
 def custom_collate(batch: list[Any], device: Any) -> Any:
     """
     Custom collate function to be used in the data loader.

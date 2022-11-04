@@ -128,29 +128,50 @@ class Discriminator(nn.Module):
         self.logits_uncond = UnconditionalLogits()
         self.logits_cond = ConditionalLogits()
 
-    def forward(
-        self, images: torch.Tensor, word_embs: torch.Tensor, sent_embs: torch.Tensor
+    def get_cond_logits(
+        self, visual_features: torch.Tensor, sent_embs: torch.Tensor
     ) -> Any:
+        """
+        Compute logits for conditional adversarial loss
+
+        :param torch.Tensor visual_features: Features from Inception encoder. Bx128x17x17
+        :param torch.Tensor sent_embs: Sentence embeddings from text encoder. Bx256
+        :return: Logits for conditional adversarial loss. Bx1
+        :rtype: Any
+        """
+        return self.logits_cond(visual_features, sent_embs)
+
+    def get_uncond_logits(self, visual_features: torch.Tensor) -> Any:
+        """
+        Compute logits for unconditioned adversarial loss
+
+        :param visual_features: Local features from Inception network. Bx128x17x17
+        :return: Logits for unconditioned adversarial loss. Bx1
+        :rtype: Any
+        """
+        return self.logits_uncond(visual_features)
+
+    def get_word_level_logits(
+        self, visual_features: torch.Tensor, word_embs: torch.Tensor
+    ) -> Any:
+        """
+        Compute logits for word-level adversarial loss
+
+        :param visual_features: Local features from Inception network. Bx128x17x17
+        :param word_embs: Word embeddings from text encoder. BxLx256
+        :return: Logits for word-level adversarial loss. BxL
+        :rtype: Any
+        """
+        return self.logits_word_level(visual_features, word_embs)
+
+    def forward(self, images: torch.Tensor) -> Any:
         """
         Obtain regional features for images and return logits
 
         :param torch.Tensor images: Images to be analyzed. Bx3x256x256
-        :param torch.Tensor sent_embs: Sentence-level embeddings from text encoder Bx256
-        :param torch.Tensor word_embs: Word-level embeddings from text encoder Bx256xL
-        :return:
-            Types of logits for different losses:
-                (1) Word level logits. BxL (presence of each word in image)
-                (2) Unconditional logits. Bx1 (image real/fake)
-                (3) Conditional logits. Bx1 (image real/fake)
-        :rtype: Any
+        :return: image features encoded by image encoder. Bx128x17x17
         """
         # only taking the local features from inception
         # Bx3x256x256 -> Bx128x17x17
         img_features, _ = self.encoder(images)
-        # getting word-level feedback for the generated image
-        logits_word_level = self.logits_word_level(img_features, word_embs)
-        # getting unconditioned adversarial logits
-        logits_uncond = self.logits_uncond(img_features)
-        # computing logits for loss conditioned on sentence-level embeddings
-        logits_cond = self.logits_cond(img_features, sent_embs)
-        return logits_word_level, logits_uncond, logits_cond
+        return img_features

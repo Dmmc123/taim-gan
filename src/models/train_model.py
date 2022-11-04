@@ -22,7 +22,6 @@ from src.models.utils import (
 
 
 def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
-    # check whether you need to use mask = (correct_capt == 0) or not.
     """
     Function to train the GAN model
     :param data_loader: Data loader for the dataset
@@ -90,11 +89,11 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             noise = torch.randn(batch_size, noise_dim).to(device)
             word_emb, sent_emb = text_encoder(correct_capt)
-            word_emb, sent_emb = word_emb.detach(), sent_emb.detach()
 
             local_incept_feat, global_incept_feat = image_encoder(images)
 
             vgg_feat = vgg_encoder(images)
+            mask = correct_capt == 0
 
             # Generate Fake Images
             fake_imgs, mu_tensor, logvar = generator(
@@ -104,30 +103,30 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
                 global_incept_feat,
                 local_incept_feat,
                 vgg_feat,
+                mask,
             )
 
             local_fake_incept_feat, global_fake_incept_feat = image_encoder(fake_imgs)
             vgg_feat_fake = vgg_encoder(fake_imgs)
 
             # Generate Logits for discriminator update
-            logits_word, logits_uncond, logits_cond = discriminator(
-                images, word_emb, sent_emb
-            )
+            real_discri_feat = discriminator(images)
+            fake_discri_feat = discriminator(fake_imgs)
 
-            fake_logits_word, fake_logits_uncond, fake_logits_cond = discriminator(
-                fake_imgs.detach(), word_emb, sent_emb
-            )
-
-            logits = {
+            logits_discri = {
                 "fake": {
-                    "word_level": fake_logits_word,
-                    "uncond": fake_logits_uncond,
-                    "cond": fake_logits_cond,
+                    "word_level": discriminator.get_word_level_logits(
+                        fake_discri_feat, word_emb
+                    ),
+                    "uncond": discriminator.get_uncond_logits(fake_discri_feat),
+                    "cond": discriminator.get_cond_logits(fake_discri_feat, sent_emb),
                 },
                 "real": {
-                    "word_level": logits_word,
-                    "uncond": logits_uncond,
-                    "cond": logits_cond,
+                    "word_level": discriminator.get_word_level_logits(
+                        real_discri_feat, word_emb
+                    ),
+                    "uncond": discriminator.get_uncond_logits(real_discri_feat),
+                    "cond": discriminator.get_cond_logits(real_discri_feat, sent_emb),
                 },
             }
 
@@ -138,15 +137,27 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             # Update Discriminator
             optimizer_d.zero_grad()
-            loss_discri = discriminator_loss(logits, labels_discri, lambda4)
+            loss_discri = discriminator_loss(logits_discri, labels_discri, lambda4)
 
             loss_discri.backward(retain_graph=True)
             optimizer_d.step()
 
+            fake_feat_d = discriminator(fake_imgs)
+
+            logits_gen = {
+                "fake": {
+                    "word_level": discriminator.get_word_level_logits(
+                        fake_feat_d, word_emb
+                    ),
+                    "uncond": discriminator.get_uncond_logits(fake_feat_d),
+                    "cond": discriminator.get_cond_logits(fake_feat_d, sent_emb),
+                }
+            }
+
             # Update Generator
             optimizer_g.zero_grad()
             loss_gen = generator_loss(
-                logits,
+                logits_gen,
                 local_fake_incept_feat,
                 global_fake_incept_feat,
                 labels_real,
@@ -164,6 +175,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
             loss_kl = kl_loss(mu_tensor, logvar)
 
             loss_gen += loss_kl
+
             loss_gen.backward()
             optimizer_g.step()
 
@@ -171,13 +183,13 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
             for param, avg_p in zip(generator.parameters(), g_param_avg):
                 avg_p = smooth_val_gen * avg_p + (1 - smooth_val_gen) * param.data
 
-            if (batch_idx + 1) % 100 == 0:
+            if (batch_idx + 1) % 20 == 0:
                 print(
                     f"Epoch [{epoch}/{epochs}], Batch [{batch_idx + 1}/{len(data_loader)}],\
                     Loss D: {loss_discri.item():.4f}, Loss G: {loss_gen.item():.4f}"
                 )
 
-            if (batch_idx + 1) % 1000 == 0:
+            if (batch_idx + 1) % 50 == 0:
                 with torch.no_grad():
                     g_backup_params = copy_gen_params(generator)
                     load_params(generator, g_param_avg)
@@ -188,6 +200,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
                         global_incept_feat,
                         local_incept_feat,
                         vgg_feat,
+                        mask,
                     )
                     save_image_and_caption(
                         fake_imgs,
@@ -200,7 +213,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
                     )
                     load_params(generator, g_backup_params)
 
-            if epoch % snapshot == 0 and epoch != 0:
-                save_model(generator, discriminator, g_param_avg, epoch, output_dir)
+        if epoch % snapshot == 0 and epoch != 0:
+            save_model(generator, discriminator, g_param_avg, epoch, output_dir)
 
     save_model(generator, discriminator, g_param_avg, epochs, output_dir)

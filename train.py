@@ -32,14 +32,15 @@ def main(args):
     dataloader = DataLoader(
         dataset,
         batch_size=args.batch_size,
+        drop_last = True,
         shuffle=True,
         num_workers=args.num_workers,
+        multiprocessing_context = "spawn",
         collate_fn=partial(custom_collate, device = cfg_dict["device"]),
     )
 
     # Train the model
-    with torch.autograd.set_detect_anomaly(True):
-        train(dataloader, cfg_dict)
+    train(dataloader, cfg_dict)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
