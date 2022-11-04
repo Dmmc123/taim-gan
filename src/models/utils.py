@@ -227,5 +227,5 @@ def save_plot(
     plt.xlabel("Batch Number")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig(output_path / "loss.png")
+    plt.savefig(output_path / "loss.png", bbox_inches='tight')
     plt.clf()

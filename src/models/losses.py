@@ -171,8 +171,7 @@ def damsm_loss(
         )  # This is image-text matching score b/w whole image and caption, shape: (batch, 1)
         match_scores.append(r_i)
 
-    masks = torch.cat(masks, dim=0)  # type: ignore
-    masks = torch.tensor(masks, dtype=torch.bool)  # type: ignore
+    masks = torch.cat(masks, dim=0).bool()  # type: ignore
     match_scores = torch.cat(match_scores, dim=1)  # type: ignore
 
     # This corresponds to P(D|Q) from attnGAN.
