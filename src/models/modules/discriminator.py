@@ -130,7 +130,7 @@ class Discriminator(nn.Module):
 
     def forward(self, images: torch.Tensor) -> Any:
         """
-        Obtain regional features for images and return logits
+        Retrieves image features encoded by the image encoder
 
         :param torch.Tensor images: Images to be analyzed. Bx3x256x256
         :return: image features encoded by image encoder. Bx128x17x17
