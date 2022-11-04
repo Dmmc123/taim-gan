@@ -24,8 +24,8 @@ def test_d(batch_num, num_words):
     s = torch.rand((batch_num, C))
     D = Discriminator()
     img_feat = D(v)
-    logits_word_level = D.get_word_level_logits(img_feat, w)
-    logits_uncond = D.get_uncond_logits(img_feat)
-    logits_cond = D.get_cond_logits(img_feat, s)
+    logits_word_level = D.logits_word_level(img_feat, w)
+    logits_uncond = D.logits_uncond(img_feat)
+    logits_cond = D.logits_cond(img_feat, s)
     assert logits_word_level.size() == (batch_num, num_words), "for word logits dims should be BxL"
     assert logits_uncond.size() == logits_cond.size() == (batch_num, 1), "for real/fake logits dims should be Bx1"

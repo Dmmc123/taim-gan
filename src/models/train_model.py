@@ -115,18 +115,18 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             logits_discri = {
                 "fake": {
-                    "word_level": discriminator.get_word_level_logits(
+                    "word_level": discriminator.logits_word_level(
                         fake_discri_feat, word_emb
                     ),
-                    "uncond": discriminator.get_uncond_logits(fake_discri_feat),
-                    "cond": discriminator.get_cond_logits(fake_discri_feat, sent_emb),
+                    "uncond": discriminator.logits_uncond(fake_discri_feat),
+                    "cond": discriminator.logits_cond(fake_discri_feat, sent_emb),
                 },
                 "real": {
-                    "word_level": discriminator.get_word_level_logits(
+                    "word_level": discriminator.logits_word_level(
                         real_discri_feat, word_emb
                     ),
-                    "uncond": discriminator.get_uncond_logits(real_discri_feat),
-                    "cond": discriminator.get_cond_logits(real_discri_feat, sent_emb),
+                    "uncond": discriminator.logits_uncond(real_discri_feat),
+                    "cond": discriminator.logits_cond(real_discri_feat, sent_emb),
                 },
             }
 
@@ -146,11 +146,11 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             logits_gen = {
                 "fake": {
-                    "word_level": discriminator.get_word_level_logits(
+                    "word_level": discriminator.logits_word_level(
                         fake_feat_d, word_emb
                     ),
-                    "uncond": discriminator.get_uncond_logits(fake_feat_d),
-                    "cond": discriminator.get_cond_logits(fake_feat_d, sent_emb),
+                    "uncond": discriminator.logits_uncond(fake_feat_d),
+                    "cond": discriminator.logits_cond(fake_feat_d, sent_emb),
                 }
             }
 

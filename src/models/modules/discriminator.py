@@ -128,42 +128,6 @@ class Discriminator(nn.Module):
         self.logits_uncond = UnconditionalLogits()
         self.logits_cond = ConditionalLogits()
 
-    def get_cond_logits(
-        self, visual_features: torch.Tensor, sent_embs: torch.Tensor
-    ) -> Any:
-        """
-        Compute logits for conditional adversarial loss
-
-        :param torch.Tensor visual_features: Features from Inception encoder. Bx128x17x17
-        :param torch.Tensor sent_embs: Sentence embeddings from text encoder. Bx256
-        :return: Logits for conditional adversarial loss. Bx1
-        :rtype: Any
-        """
-        return self.logits_cond(visual_features, sent_embs)
-
-    def get_uncond_logits(self, visual_features: torch.Tensor) -> Any:
-        """
-        Compute logits for unconditioned adversarial loss
-
-        :param visual_features: Local features from Inception network. Bx128x17x17
-        :return: Logits for unconditioned adversarial loss. Bx1
-        :rtype: Any
-        """
-        return self.logits_uncond(visual_features)
-
-    def get_word_level_logits(
-        self, visual_features: torch.Tensor, word_embs: torch.Tensor
-    ) -> Any:
-        """
-        Compute logits for word-level adversarial loss
-
-        :param visual_features: Local features from Inception network. Bx128x17x17
-        :param word_embs: Word embeddings from text encoder. BxLx256
-        :return: Logits for word-level adversarial loss. BxL
-        :rtype: Any
-        """
-        return self.logits_word_level(visual_features, word_embs)
-
     def forward(self, images: torch.Tensor) -> Any:
         """
         Obtain regional features for images and return logits
