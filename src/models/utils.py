@@ -14,6 +14,7 @@ from src.models.modules.discriminator import Discriminator
 from src.models.modules.generator import Generator
 from src.models.modules.image_encoder import InceptionEncoder
 from src.models.modules.text_encoder import TextEncoder
+
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
 
@@ -27,7 +28,11 @@ def copy_gen_params(generator: Generator) -> Any:
 
 
 def define_optimizers(
-    generator: Generator, discriminator: Discriminator, image_encoder: InceptionEncoder, text_encoder: TextEncoder, lr_config: dict[str, float]
+    generator: Generator,
+    discriminator: Discriminator,
+    image_encoder: InceptionEncoder,
+    text_encoder: TextEncoder,
+    lr_config: dict[str, float],
 ) -> Any:
     """
     Function to define the optimizers for the generator and discriminator
@@ -36,31 +41,29 @@ def define_optimizers(
     :param text_encoder: Text encoder model
     :param discriminator: Discriminator model
     :param lr_config: Dictionary containing the learning rates for the optimizers
-    
+
     """
     img_encoder_lr = lr_config["img_encoder_lr"]
     text_encoder_lr = lr_config["text_encoder_lr"]
     gen_lr = lr_config["gen_lr"]
     disc_lr = lr_config["disc_lr"]
-    
-    optimizer_g = optim.Adam([
-        {
-            'params': generator.parameters()
-        },
-        {
-            'params': image_encoder.parameters(),
-            'lr': img_encoder_lr
-        }
-        ], lr=gen_lr, betas=(0.5, 0.999))
-    optimizer_d = optim.Adam([
-        {
-            'params': discriminator.parameters()
-        },
-        {
-            'params': text_encoder.parameters(),
-            'lr': text_encoder_lr
-        }
-        ], lr=disc_lr, betas=(0.5, 0.999))
+
+    optimizer_g = optim.Adam(
+        [
+            {"params": generator.parameters()},
+            {"params": image_encoder.parameters(), "lr": img_encoder_lr},  # type: ignore
+        ],
+        lr=gen_lr,
+        betas=(0.5, 0.999),
+    )
+    optimizer_d = optim.Adam(
+        [
+            {"params": discriminator.parameters()},
+            {"params": text_encoder.parameters(), "lr": text_encoder_lr},  # type: ignore
+        ],
+        lr=disc_lr,
+        betas=(0.5, 0.999),
+    )
 
     return optimizer_g, optimizer_d
 
