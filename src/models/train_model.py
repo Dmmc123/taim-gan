@@ -66,7 +66,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
     discriminator = Discriminator().to(device)
     text_encoder = TextEncoder(vocab_len, D, D // 2).to(device)
     image_encoder = InceptionEncoder(D).to(device)
-    vgg_encoder = VGGEncoder(device).to(device)
+    vgg_encoder = VGGEncoder().to(device)
 
     g_param_avg = copy_gen_params(generator)
 

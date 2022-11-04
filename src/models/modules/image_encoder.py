@@ -112,21 +112,19 @@ class InceptionEncoder(nn.Module):
 class VGGEncoder(nn.Module):
     """Pre Trained VGG Encoder Module"""
 
-    def __init__(self, device: Any) -> None:
+    def __init__(self) -> None:
         """
         Initialize pre-trained VGG model with frozen parameters
         """
         super().__init__()
         self.select = "8"  ## We want to get the output of the 8th layer in VGG.
 
-        model = torch.hub.load("pytorch/vision:v0.10.0", "vgg16", pretrained=True).to(
-            device
-        )
+        self.model = torch.hub.load("pytorch/vision:v0.10.0", "vgg16", pretrained=True)
 
-        for param in model.parameters():
+        for param in self.model.parameters():
             param.resquires_grad = False
 
-        self.vgg_modules = model.features._modules
+        self.vgg_modules = self.model.features._modules
 
     def forward(self, image_tensor: torch.Tensor) -> Any:
         """

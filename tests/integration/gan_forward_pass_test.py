@@ -12,8 +12,6 @@ IMG_HW = 256  # height and width of images
 HIDDEN_DIM = 128  # hidden dimensions of lstm cell in one direction
 C = 2 * HIDDEN_DIM  # length of embeddings
 
-device = torch.device("cpu")
-
 @pytest.mark.parametrize(
     argnames=("Ng", "cond_dim", "z_dim", "vocab_size", "word_emb_dim", "batch_size", "L"),
     argvalues=(
@@ -36,7 +34,7 @@ def test_gan(Ng, cond_dim, z_dim, vocab_size, word_emb_dim, batch_size, L):
     D = Discriminator()
     G = Generator(Ng=Ng, D=C, conditioning_dim=cond_dim, noise_dim=z_dim)
     lstm = TextEncoder(vocab_size=vocab_size, emb_dim=word_emb_dim, hidden_dim=HIDDEN_DIM)
-    vgg = VGGEncoder(device)
+    vgg = VGGEncoder()
     inception = InceptionEncoder(D=C)
 
     # generate some noise
