@@ -211,7 +211,7 @@ def save_plot(
     :param output_dir: Output directory
     """
     pickle_path = output_dir / "losses/"
-    output_path = output_dir / "plots/"
+    output_path = output_dir / "plots" / f"{epoch}_epochs/{batch_idx}_batch/"
     Path(output_path).mkdir(parents=True, exist_ok=True)
     Path(pickle_path).mkdir(parents=True, exist_ok=True)
 
@@ -227,5 +227,5 @@ def save_plot(
     plt.xlabel("Batch Number")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig(output_path / f"{epoch}_epochs/{batch_idx}_batch/loss.png")
+    plt.savefig(output_path / "loss.png")
     plt.clf()
