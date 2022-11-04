@@ -16,6 +16,7 @@ from src.models.utils import (
     prepare_labels,
     save_image_and_caption,
     save_model,
+    save_plot,
 )
 
 # pylint: disable=too-many-locals
@@ -66,6 +67,8 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
     text_encoder = TextEncoder(vocab_len, D, D // 2).to(device)
     image_encoder = InceptionEncoder(D).to(device)
     vgg_encoder = VGGEncoder().to(device)
+    gen_loss = []
+    disc_loss = []
 
     g_param_avg = copy_gen_params(generator)
 
@@ -140,6 +143,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             loss_discri.backward(retain_graph=True)
             optimizer_d.step()
+            disc_loss.append(loss_discri.item())
 
             fake_feat_d = discriminator(fake_imgs)
 
@@ -177,6 +181,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             loss_gen.backward()
             optimizer_g.step()
+            gen_loss.append(loss_gen.item())
             optimizer_text_encoder.zero_grad()
             optimizer_text_encoder.step()
 
@@ -213,6 +218,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
                         output_dir,
                     )
                     load_params(generator, g_backup_params)
+                    save_plot(gen_loss, disc_loss, epoch, batch_idx, output_dir)
 
         if epoch % snapshot == 0 and epoch != 0:
             save_model(generator, discriminator, g_param_avg, epoch, output_dir)

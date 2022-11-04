@@ -1,10 +1,12 @@
 """Helper functions for models."""
 
 import pathlib
+import pickle
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from PIL import Image
@@ -191,3 +193,39 @@ def save_image_and_caption(
             text_str = str(i + 1) + ": " + " ".join(capt_list[i])
             txt_file.write(text_str)
             txt_file.write("\n")
+
+
+def save_plot(
+    gen_loss: list[float],
+    disc_loss: list[float],
+    epoch: int,
+    batch_idx: int,
+    output_dir: pathlib.PosixPath,
+) -> None:
+    """
+    Function to save the plot of the loss.
+    :param gen_loss: List of generator losses
+    :param disc_loss: List of discriminator losses
+    :param epoch: Epoch number
+    :param batch_idx: Batch index
+    :param output_dir: Output directory
+    """
+    pickle_path = output_dir / "losses/"
+    output_path = output_dir / "plots/"
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+    Path(pickle_path).mkdir(parents=True, exist_ok=True)
+
+    with open(pickle_path / "gen_loss.pkl", "wb") as pickl_file:
+        pickle.dump(gen_loss, pickl_file)
+
+    with open(pickle_path / "disc_loss.pkl", "wb") as pickl_file:
+        pickle.dump(disc_loss, pickl_file)
+
+    plt.style.use("fivethirtyeight")
+    plt.plot(gen_loss, label="Generator Loss")
+    plt.plot(disc_loss, label="Discriminator Loss")
+    plt.xlabel("Batch Number")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig(output_path / f"{epoch}_epochs/{batch_idx}_batch/loss.png")
+    plt.clf()
