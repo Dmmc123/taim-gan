@@ -33,8 +33,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
         D,  # pylint: disable=invalid-name
         condition_dim,
         noise_dim,
-        disc_lr,
-        gen_lr,
+        lr_config,
         batch_size,
         device,
         epochs,
@@ -48,8 +47,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
         config_dict["D"],
         config_dict["condition_dim"],
         config_dict["noise_dim"],
-        config_dict["disc_lr"],
-        config_dict["gen_lr"],
+        config_dict["lr_config"],
         config_dict["batch_size"],
         config_dict["device"],
         config_dict["epochs"],
@@ -71,7 +69,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
     g_param_avg = copy_gen_params(generator)
 
     optimizer_g, optimizer_d = define_optimizers(
-        generator, discriminator, disc_lr, gen_lr
+        generator, discriminator, image_encoder, text_encoder, lr_config
     )
 
     for epoch in range(1, epochs + 1):
