@@ -57,15 +57,13 @@ def define_optimizers(
         betas=(0.5, 0.999),
     )
     optimizer_d = optim.Adam(
-        [
-            {"params": discriminator.parameters()},
-            {"params": text_encoder.parameters(), "lr": text_encoder_lr},  # type: ignore
-        ],
+        [{"params": discriminator.parameters()}],
         lr=disc_lr,
         betas=(0.5, 0.999),
     )
+    optimizer_text_encoder = optim.Adam(text_encoder.parameters(), lr=text_encoder_lr)
 
-    return optimizer_g, optimizer_d
+    return optimizer_g, optimizer_d, optimizer_text_encoder
 
 
 def prepare_labels(batch_size: int, max_seq_len: int, device: torch.device) -> Any:

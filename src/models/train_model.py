@@ -19,6 +19,7 @@ from src.models.utils import (
 )
 
 # pylint: disable=too-many-locals
+# pylint: disable=too-many-statements
 
 
 def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
@@ -68,7 +69,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
     g_param_avg = copy_gen_params(generator)
 
-    optimizer_g, optimizer_d = define_optimizers(
+    optimizer_g, optimizer_d, optimizer_text_encoder = define_optimizers(
         generator, discriminator, image_encoder, text_encoder, lr_config
     )
 
@@ -176,6 +177,8 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             loss_gen.backward()
             optimizer_g.step()
+            optimizer_text_encoder.zero_grad()
+            optimizer_text_encoder.step()
 
             # Update the moving average of the generator parameters
             for param, avg_p in zip(generator.parameters(), g_param_avg):
