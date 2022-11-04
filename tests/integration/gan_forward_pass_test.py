@@ -12,6 +12,7 @@ IMG_HW = 256  # height and width of images
 HIDDEN_DIM = 128  # hidden dimensions of lstm cell in one direction
 C = 2 * HIDDEN_DIM  # length of embeddings
 
+device = torch.device("cpu")
 
 @pytest.mark.parametrize(
     argnames=("Ng", "cond_dim", "z_dim", "vocab_size", "word_emb_dim", "batch_size", "L"),
@@ -35,21 +36,25 @@ def test_gan(Ng, cond_dim, z_dim, vocab_size, word_emb_dim, batch_size, L):
     D = Discriminator()
     G = Generator(Ng=Ng, D=C, conditioning_dim=cond_dim, noise_dim=z_dim)
     lstm = TextEncoder(vocab_size=vocab_size, emb_dim=word_emb_dim, hidden_dim=HIDDEN_DIM)
-    vgg = VGGEncoder()
+    vgg = VGGEncoder(device)
     inception = InceptionEncoder(D=C)
 
     # generate some noise
     noise = torch.rand((batch_size, z_dim))
     # generate inout for textual encoders and get word and sentence embeddings
     tokens = torch.randint(0, vocab_size, (batch_size, L))
+    mask = tokens == 0
     word_embs, sent_embs = lstm(tokens)
     # generate visual features from vgg and inception
     images = torch.rand((batch_size, IMG_CHANS, IMG_HW, IMG_HW))
     vgg_features = vgg(images)
     local_features, global_features = inception(images)
     # obtain fake images
-    fake_images, _, _ = G(noise, sent_embs, word_embs, global_features, local_features, vgg_features)
+    fake_images, _, _ = G(noise, sent_embs, word_embs, global_features, local_features, vgg_features, mask)
     # propagate fake images through discriminator and get logits
-    logits_word_level, logits_uncond, logits_cond = D(fake_images, word_embs, sent_embs)
+    img_feat = D(fake_images)
+    logits_word_level = D.get_word_level_logits(img_feat, word_embs)
+    logits_uncond = D.get_uncond_logits(img_feat)
+    logits_cond = D.get_cond_logits(img_feat, sent_embs)
 
 

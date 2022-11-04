@@ -4,6 +4,7 @@ import torch
 
 import pytest
 
+device = torch.device("cpu")
 
 @pytest.mark.parametrize(
     argnames=("D", "batch"),
@@ -27,7 +28,7 @@ def test_inception_image_encoder(D, batch, channel = 3, height = 256, width = 25
 )
 def test_vgg_1(batch):
     """check forward pass dim output"""
-    vgg = VGGEncoder()
+    vgg = VGGEncoder(device)
     x = torch.randn(batch, 3, 256, 256)
     output = vgg(x)
     assert output.size() == (batch, 128, 128, 128), "vgg output dimension is wrong."
@@ -35,7 +36,7 @@ def test_vgg_1(batch):
 
 def test_vgg_2():
     """check edge-case for returning None"""
-    vgg = VGGEncoder()
+    vgg = VGGEncoder(device)
     vgg.select = "some nonexistent layer"
     x = torch.randn(2, 3, 256, 256)
     output = vgg(x)

@@ -1,6 +1,6 @@
 """Generator Module"""
 
-from typing import Any
+from typing import Any, Optional
 
 import torch
 from torch import nn
@@ -76,7 +76,7 @@ class InitStageG(nn.Module):
         global_inception: torch.Tensor,
         local_upsampled_inception: torch.Tensor,
         word_embeddings: torch.Tensor,
-        mask: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
     ) -> Any:
         """
         :param noise: Noise tensor
@@ -171,7 +171,7 @@ class NextStageG(nn.Module):
         hidden_feat: Any,
         word_embeddings: torch.Tensor,
         vgg64_feat: torch.Tensor,
-        mask: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
     ) -> Any:
         """
         :param hidden_feat: Hidden feature from previous generator stage [i.e. hidden_64]
@@ -268,7 +268,7 @@ class Generator(nn.Module):
         global_inception_feat: torch.Tensor,
         local_inception_feat: torch.Tensor,
         vgg_feat: torch.Tensor,
-        mask: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
     ) -> Any:
         """
         :param noise: Noise vector [shape: (batch, noise_dim)]
