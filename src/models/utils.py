@@ -235,9 +235,10 @@ def save_plot(
         pickle.dump(disc_loss, pickl_file)
 
     plt.style.use("fivethirtyeight")
+    plt.figure(figsize=(24, 12))
     plt.plot(gen_loss, label="Generator Loss")
     plt.plot(disc_loss, label="Discriminator Loss")
-    plt.xlabel("Batch Number")
+    plt.xlabel("No of Iterations")
     plt.ylabel("Loss")
     plt.legend()
     plt.savefig(output_path / "loss.png", bbox_inches="tight")
