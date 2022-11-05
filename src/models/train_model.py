@@ -10,9 +10,8 @@ from src.models.modules.generator import Generator
 from src.models.modules.image_encoder import InceptionEncoder, VGGEncoder
 from src.models.modules.text_encoder import TextEncoder
 from src.models.utils import (
-    copy_gen_params,
     define_optimizers,
-    load_params,
+    load_model,
     prepare_labels,
     save_image_and_caption,
     save_model,
@@ -60,7 +59,6 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
         config_dict["const_dict"],
     )
 
-    smooth_val_gen = const_dict["smooth_val_gen"]
     lambda4 = const_dict["lambda4"]
     generator = Generator(Ng, D, condition_dim, noise_dim).to(device)
     discriminator = Discriminator().to(device)
@@ -70,7 +68,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
     gen_loss = []
     disc_loss = []
 
-    g_param_avg = copy_gen_params(generator)
+    load_model(generator, discriminator, image_encoder, text_encoder, output_dir)
 
     optimizer_g, optimizer_d, optimizer_text_encoder = define_optimizers(
         generator, discriminator, image_encoder, text_encoder, lr_config
@@ -182,12 +180,8 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
             loss_gen.backward()
             optimizer_g.step()
             gen_loss.append(loss_gen.item())
-            optimizer_text_encoder.zero_grad()
             optimizer_text_encoder.step()
-
-            # Update the moving average of the generator parameters
-            for param, avg_p in zip(generator.parameters(), g_param_avg):
-                avg_p = smooth_val_gen * avg_p + (1 - smooth_val_gen) * param.data
+            optimizer_text_encoder.zero_grad()
 
             if (batch_idx + 1) % 20 == 0:
                 print(
@@ -197,9 +191,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             if (batch_idx + 1) % 50 == 0:
                 with torch.no_grad():
-                    g_backup_params = copy_gen_params(generator)
-                    load_params(generator, g_param_avg)
-                    fake_imgs, _, _ = generator(
+                    fake_imgs_act, _, _ = generator(
                         noise,
                         sent_emb,
                         word_emb,
@@ -209,7 +201,7 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
                         mask,
                     )
                     save_image_and_caption(
-                        fake_imgs,
+                        fake_imgs_act,
                         images,
                         correct_capt,
                         ix2word,
@@ -217,10 +209,13 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
                         epoch,
                         output_dir,
                     )
-                    load_params(generator, g_backup_params)
                     save_plot(gen_loss, disc_loss, epoch, batch_idx, output_dir)
 
         if epoch % snapshot == 0 and epoch != 0:
-            save_model(generator, discriminator, g_param_avg, epoch, output_dir)
+            save_model(
+                generator, discriminator, image_encoder, text_encoder, epoch, output_dir
+            )
 
-    save_model(generator, discriminator, g_param_avg, epochs, output_dir)
+    save_model(
+        generator, discriminator, image_encoder, text_encoder, epochs, output_dir
+    )
