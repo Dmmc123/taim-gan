@@ -115,7 +115,8 @@ def get_captions(captions: torch.Tensor, ix2word: dict[int, str]) -> Any:
 def save_model(
     generator: Generator,
     discriminator: Discriminator,
-    params: Any,
+    image_encoder: InceptionEncoder,
+    text_encoder: TextEncoder,
     epoch: int,
     output_dir: pathlib.PosixPath,
 ) -> None:
@@ -123,18 +124,31 @@ def save_model(
     Function to save the model.
     :param generator: Generator model
     :param discriminator: Discriminator model
+    :param image_encoder: Image encoder model
+    :param text_encoder: Text encoder model
     :param params: Parameters of the generator
     :param epoch: Epoch number
     :param output_dir: Output directory
     """
     output_path = output_dir / "weights/"
-    backup_para = copy_gen_params(generator)
-    load_params(generator, params)
-    Path(output_path).mkdir(parents=True, exist_ok=True)
-    torch.save(generator.state_dict(), output_path / f"generator_epoch_{epoch}.pth")
-    load_params(generator, backup_para)
+    Path(output_path / "generator").mkdir(parents=True, exist_ok=True)
     torch.save(
-        discriminator.state_dict(), output_path / f"discriminator_epoch_{epoch}.pth"
+        generator.state_dict(), output_path / f"generator/generator_epoch_{epoch}.pth"
+    )
+    Path(output_path / "discriminator").mkdir(parents=True, exist_ok=True)
+    torch.save(
+        discriminator.state_dict(),
+        output_path / f"discriminator/discriminator_epoch_{epoch}.pth",
+    )
+    Path(output_path / "image_encoder").mkdir(parents=True, exist_ok=True)
+    torch.save(
+        image_encoder.state_dict(),
+        output_path / f"image_encoder/image_encoder_epoch_{epoch}.pth",
+    )
+    Path(output_path / "text_encoder").mkdir(parents=True, exist_ok=True)
+    torch.save(
+        text_encoder.state_dict(),
+        output_path / f"text_encoder/text_encoder_epoch_{epoch}.pth",
     )
     print(f"Model saved at epoch {epoch}.")
 
@@ -169,7 +183,6 @@ def save_image_and_caption(
     capt_list = get_captions(captions, ix2word)
     img_arr = get_image_arr(img_tensor)
     fake_img_arr = get_image_arr(fake_img_tensor)
-
     for i in range(img_arr.shape[0]):
         img = Image.fromarray(img_arr[i])
         fake_img = Image.fromarray(fake_img_arr[i])
@@ -222,10 +235,43 @@ def save_plot(
         pickle.dump(disc_loss, pickl_file)
 
     plt.style.use("fivethirtyeight")
+    plt.figure(figsize=(24, 12))
     plt.plot(gen_loss, label="Generator Loss")
     plt.plot(disc_loss, label="Discriminator Loss")
-    plt.xlabel("Batch Number")
+    plt.xlabel("No of Iterations")
     plt.ylabel("Loss")
     plt.legend()
-    plt.savefig(output_path / "loss.png", bbox_inches='tight')
+    plt.savefig(output_path / "loss.png", bbox_inches="tight")
     plt.clf()
+
+
+def load_model(
+    generator: Generator,
+    discriminator: Discriminator,
+    image_encoder: InceptionEncoder,
+    text_encoder: TextEncoder,
+    output_dir: pathlib.PosixPath,
+) -> None:
+    """
+    Function to load the model.
+    :param generator: Generator model
+    :param discriminator: Discriminator model
+    :param image_encoder: Image encoder model
+    :param text_encoder: Text encoder model
+    :param output_dir: Output directory
+    """
+    output_path = output_dir / "weights/"
+    if (output_path / "generator.pth").exists():
+        generator.load_state_dict(torch.load(output_path / "generator.pth"))
+        print("Generator loaded.")
+    if (output_path / "discriminator.pth").exists():
+        discriminator.load_state_dict(torch.load(output_path / "discriminator.pth"))
+        print("Discriminator loaded.")
+
+    if (output_path / "image_encoder.pth").exists():
+        image_encoder.load_state_dict(torch.load(output_path / "image_encoder.pth"))
+        print("Image Encoder loaded.")
+
+    if (output_path / "text_encoder.pth").exists():
+        text_encoder.load_state_dict(torch.load(output_path / "text_encoder.pth"))
+        print("Text Encoder loaded.")
