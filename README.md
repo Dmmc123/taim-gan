@@ -9,6 +9,11 @@ Text-Assisted Image Manipulation
 
 We are still trying to experiment with the losses and the training procedure to get better outputs from our GAN network. Currently it is managing to get the rough outline/shapes and most parts of the image but the colour seems to be washed out.
 
+Update: We are now able to get some decent results, the epoch 50 results look like the following:
+
+![3](https://user-images.githubusercontent.com/30185369/203063533-15e5e9fb-4b5a-4436-8188-3fe883db2c0a.png)
+![3_2](https://user-images.githubusercontent.com/30185369/203063658-44043f3e-2e00-49ef-a8da-09559e3fa290.png)
+![26_fake](https://user-images.githubusercontent.com/30185369/203063754-20ec572e-6920-401e-a249-76788996911e.png)
 
 ## Project Organization
 ------------
