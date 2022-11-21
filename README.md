@@ -2,6 +2,14 @@
 
 Text-Assisted Image Manipulation
 
+## Tentative Results
+![2_fake](https://user-images.githubusercontent.com/30185369/203002443-c977d0d3-7667-4d33-94f4-16752417d220.png)
+![5_generated](https://user-images.githubusercontent.com/30185369/203002454-cbad49df-f59f-4491-9fca-169e295dd33b.png)
+![8](https://user-images.githubusercontent.com/30185369/203002461-88440789-853b-4ef3-b6be-e9aa4b417b42.png)
+
+We are still trying to experiment with the losses and the training procedure to get better outputs from our GAN network. Currently it is managing to get the rough outline/shapes and most parts of the image but the colour seems to be washed out.
+
+
 ## Project Organization
 ------------
 
