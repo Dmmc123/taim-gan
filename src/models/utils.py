@@ -51,9 +51,7 @@ def define_optimizers(
     disc_lr = lr_config["disc_lr"]
 
     optimizer_g = optim.Adam(
-        [
-            {"params": generator.parameters()}
-        ],
+        [{"params": generator.parameters()}],
         lr=gen_lr,
         betas=(0.5, 0.999),
     )

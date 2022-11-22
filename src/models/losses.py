@@ -13,7 +13,6 @@ def generator_loss(
     local_fake_incept_feat: torch.Tensor,
     global_fake_incept_feat: torch.Tensor,
     real_labels: torch.Tensor,
-    word_labels: torch.Tensor,
     words_emb: torch.Tensor,
     sent_emb: torch.Tensor,
     match_labels: torch.Tensor,
@@ -57,7 +56,6 @@ def generator_loss(
         const_dict: The dictionary containing the constants.
     """
     lambda1 = const_dict["lambda1"]
-    lambda2 = const_dict["lambda2"]
     total_error_g = 0.0
 
     cond_logits = logits["fake"]["cond"]
@@ -67,7 +65,7 @@ def generator_loss(
     uncond_err_g = nn.BCEWithLogitsLoss()(uncond_logits, real_labels)
 
     # add up the conditional and unconditional losses
-    loss_g = 0.5 * (cond_err_g + uncond_err_g)
+    loss_g = cond_err_g + uncond_err_g
     total_error_g += loss_g
 
     # DAMSM Loss from attnGAN.
@@ -84,12 +82,9 @@ def generator_loss(
 
     total_error_g += loss_damsm
 
-    loss_per = nn.MSELoss()(real_vgg_feat, fake_vgg_feat)  # perceptual loss
+    loss_per = 0.5 * nn.MSELoss()(real_vgg_feat, fake_vgg_feat)  # perceptual loss
 
     total_error_g += lambda1 * loss_per
-
-    word_level_loss = nn.BCELoss()(logits["fake"]["word_level"], word_labels)
-    total_error_g += lambda2 * word_level_loss
 
     return total_error_g
 
@@ -274,7 +269,6 @@ def compute_region_context_vector(
 def discriminator_loss(
     logits: dict[str, dict[str, torch.Tensor]],
     labels: dict[str, dict[str, torch.Tensor]],
-    lambda_4: float = 1.0,
 ) -> Any:
     """
     Calculate discriminator objective
@@ -316,18 +310,26 @@ def discriminator_loss(
     :rtype: Any
     """
     # define main loss functions for logit losses
+    tot_loss = 0.0
     bce_logits = nn.BCEWithLogitsLoss()
     bce = nn.BCELoss()
     # calculate word-level loss
     word_loss = bce(logits["real"]["word_level"], labels["real"]["word_level"])
-    word_loss += bce(logits["fake"]["word_level"], labels["fake"]["word_level"])
     # calculate unconditional adversarial loss
     uncond_loss = bce_logits(logits["real"]["uncond"], labels["real"]["image"])
-    uncond_loss += bce_logits(logits["fake"]["uncond"], labels["fake"]["image"])
+
     # calculate conditional adversarial loss
     cond_loss = bce_logits(logits["real"]["cond"], labels["real"]["image"])
-    cond_loss += bce_logits(logits["fake"]["cond"], labels["fake"]["image"])
-    return 1 / 2 * (uncond_loss + cond_loss) + lambda_4 * word_loss
+
+    tot_loss = (uncond_loss + cond_loss) / 2.0
+
+    fake_uncond_loss = bce_logits(logits["fake"]["uncond"], labels["fake"]["image"])
+    fake_cond_loss = bce_logits(logits["fake"]["cond"], labels["fake"]["image"])
+
+    tot_loss += (fake_uncond_loss + fake_cond_loss) / 3.0
+    tot_loss += word_loss
+
+    return tot_loss
 
 
 def kl_loss(mu_tensor: torch.Tensor, logvar: torch.Tensor) -> Any:
