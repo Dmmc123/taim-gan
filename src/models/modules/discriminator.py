@@ -7,7 +7,6 @@ from torch import nn
 from src.models.modules.conv_utils import conv1d, conv2d
 from src.models.modules.image_encoder import InceptionEncoder
 
-
 class WordLevelLogits(nn.Module):
     """API for converting regional feature maps into logits for multi-class classification"""
 
@@ -22,7 +21,7 @@ class WordLevelLogits(nn.Module):
         # change dism of of textual embs to correlate with chans of inception
         self.chan_reduction = conv1d(256, 128)
 
-    def forward(self, visual_features: torch.Tensor, word_embs: torch.Tensor) -> Any:
+    def forward(self, visual_features: torch.Tensor, word_embs: torch.Tensor, mask: torch.Tensor) -> Any:
         """
         Fuse two types of features together to get output for feeding into the classification loss
         :param torch.Tensor visual_features:
@@ -45,6 +44,7 @@ class WordLevelLogits(nn.Module):
         m_norm_hw = torch.transpose(m_norm_hw, 1, 2)
         weighted_img_feats = visual_features @ m_norm_hw
         weighted_img_feats = torch.sum(weighted_img_feats, dim=1)
+        weighted_img_feats[mask] = -float("inf")
         deltas = self.softmax(weighted_img_feats)
         return deltas
 
