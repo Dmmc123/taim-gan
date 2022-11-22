@@ -17,8 +17,8 @@ config_dict = {
     "lr_config": {
         "disc_lr": 2e-4,
         "gen_lr": 2e-4,
-        "img_encoder_lr": 1e-3,
-        "text_encoder_lr": 1e-3,
+        "img_encoder_lr": 3e-3,
+        "text_encoder_lr": 3e-3,
     },
     "batch_size": 64,
     "device": device,
