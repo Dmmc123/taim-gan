@@ -51,10 +51,7 @@ def define_optimizers(
     disc_lr = lr_config["disc_lr"]
 
     optimizer_g = optim.Adam(
-        [
-            {"params": generator.parameters()},
-            {"params": image_encoder.parameters(), "lr": img_encoder_lr},  # type: ignore
-        ],
+        [{"params": generator.parameters()}],
         lr=gen_lr,
         betas=(0.5, 0.999),
     )
@@ -64,8 +61,9 @@ def define_optimizers(
         betas=(0.5, 0.999),
     )
     optimizer_text_encoder = optim.Adam(text_encoder.parameters(), lr=text_encoder_lr)
+    optimizer_image_encoder = optim.Adam(image_encoder.parameters(), lr=img_encoder_lr)
 
-    return optimizer_g, optimizer_d, optimizer_text_encoder
+    return optimizer_g, optimizer_d, optimizer_text_encoder, optimizer_image_encoder
 
 
 def prepare_labels(batch_size: int, max_seq_len: int, device: torch.device) -> Any:
@@ -243,6 +241,7 @@ def save_plot(
     plt.legend()
     plt.savefig(output_path / "loss.png", bbox_inches="tight")
     plt.clf()
+    plt.close()
 
 
 def load_model(
