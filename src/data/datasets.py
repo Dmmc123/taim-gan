@@ -57,9 +57,12 @@ class TextImageDataset(Dataset):  # type: ignore
         elif self.data_path.endswith("coco/"):
             pass
 
+        elif self.data_path.endswith("UTKFace/"):
+            pass
+
         else:
             raise ValueError(
-                "Invalid data path. Please ensure the data [CUB/COCO] is stored in correct folders."
+                "Invalid data path. Please ensure the data [CUB/COCO/UTKFace] is stored in correct folders."
             )
 
     def __len__(self) -> int:
@@ -163,8 +166,8 @@ class TextImageDataset(Dataset):  # type: ignore
                 word_to_ix,
                 num_words,
             ) = self.build_vocab(  # type: ignore
-                train_captions_tokenized, test_captions_tokenized, split
-            )
+                train_captions_tokenized, test_captions_tokenized
+                )
             vocab_list = [train_captions, test_captions, ix_to_word, word_to_ix]
             with open(captions_ckpt_path, "wb") as ckpt_file:
                 pickle.dump(vocab_list, ckpt_file)

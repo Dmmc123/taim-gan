@@ -7,6 +7,66 @@ from torch import nn
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
 
+def generator_loss_damsm(
+    real_labels: torch.Tensor,
+    words_emb: torch.Tensor,
+    sent_emb: torch.Tensor,
+    match_labels: torch.Tensor,
+    cap_lens: torch.Tensor,
+    class_ids: torch.Tensor,
+    local_incept_feat: torch.Tensor,
+    global_incept_feat: torch.Tensor,
+    const_dict: dict[str, float],
+) -> Any:
+    """Calculate the loss for the generator.
+
+    Args:
+        logits: Dictionary with fake/real and word-level/uncond/cond logits
+
+        local_fake_incept_feat: The local inception features for the fake images.
+
+        global_fake_incept_feat: The global inception features for the fake images.
+
+        real_labels: Label for "real" image as predicted by discriminator,
+        this is a tensor of ones. [shape: (batch_size, 1)].
+
+        word_labels: POS tagged word labels for the captions. [shape: (batch_size, L)]
+
+        words_emb: The embeddings for all the words in the captions.
+        shape: (batch_size, embedding_size, max_caption_length)
+
+        sent_emb: The embeddings for the sentences.
+        shape: (batch_size, embedding_size)
+
+        match_labels: Tensor of shape: (batch_size, 1).
+        This is of the form torch.tensor([0, 1, 2, ..., batch-1])
+
+        cap_lens: The length of the 'actual' captions in the batch [without padding]
+        shape: (batch_size, 1)
+
+        class_ids: The class ids for the instance. shape: (batch_size, 1)
+
+        real_vgg_feat: The vgg features for the real images. shape: (batch_size, 128, 128, 128)
+        fake_vgg_feat: The vgg features for the fake images. shape: (batch_size, 128, 128, 128)
+
+        const_dict: The dictionary containing the constants.
+    """
+    # DAMSM Loss from attnGAN.
+    loss_damsm = damsm_loss(
+        local_incept_feat,
+        global_incept_feat,
+        words_emb,
+        sent_emb,
+        match_labels,
+        cap_lens,
+        class_ids,
+        const_dict,
+    )
+
+    total_error_g = loss_damsm
+
+    return total_error_g
+
 
 def generator_loss(
     logits: dict[str, dict[str, torch.Tensor]],
