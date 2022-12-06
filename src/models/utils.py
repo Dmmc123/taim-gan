@@ -4,7 +4,7 @@ import pathlib
 import pickle
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,7 +34,7 @@ def define_optimizers(
     discriminator: Discriminator,
     image_encoder: InceptionEncoder,
     text_encoder: TextEncoder,
-    lr_config: dict[str, float],
+    lr_config: Dict[str, float],
 ) -> Any:
     """
     Function to define the optimizers for the generator and discriminator
@@ -99,7 +99,7 @@ def get_image_arr(image_tensor: torch.Tensor) -> Any:
     return image  # (B,H,W,C)
 
 
-def get_captions(captions: torch.Tensor, ix2word: dict[int, str]) -> Any:
+def get_captions(captions: torch.Tensor, ix2word: Dict[int, str]) -> Any:
     """
     Function to convert a tensor to a list of captions.
     :param captions: Tensor containing the captions (shape: (batch_size, max_seq_len))
@@ -155,7 +155,7 @@ def save_image_and_caption(
     fake_img_tensor: torch.Tensor,
     img_tensor: torch.Tensor,
     captions: torch.Tensor,
-    ix2word: dict[int, str],
+    ix2word: Dict[int, str],
     batch_idx: int,
     epoch: int,
     output_dir: pathlib.PosixPath,
@@ -207,8 +207,8 @@ def save_image_and_caption(
 
 
 def save_plot(
-    gen_loss: list[float],
-    disc_loss: list[float],
+    gen_loss: List[float],
+    disc_loss: List[float],
     epoch: int,
     batch_idx: int,
     output_dir: pathlib.PosixPath,
@@ -249,7 +249,8 @@ def load_model(
     discriminator: Discriminator,
     image_encoder: InceptionEncoder,
     text_encoder: TextEncoder,
-    output_dir: pathlib.PosixPath,
+    output_dir: pathlib.Path,
+    device: torch.device
 ) -> None:
     """
     Function to load the model.
@@ -258,19 +259,18 @@ def load_model(
     :param image_encoder: Image encoder model
     :param text_encoder: Text encoder model
     :param output_dir: Output directory
+    :param device: device to map the location of weights
     """
-    output_path = output_dir / "weights/"
-    if (output_path / "generator.pth").exists():
-        generator.load_state_dict(torch.load(output_path / "generator.pth"))
+    if (output_dir / "generator.pth").exists():
+        generator.load_state_dict(torch.load(output_dir / "generator.pth", map_location=device))
         print("Generator loaded.")
-    if (output_path / "discriminator.pth").exists():
-        discriminator.load_state_dict(torch.load(output_path / "discriminator.pth"))
+    if (output_dir / "discriminator.pth").exists():
+        discriminator.load_state_dict(torch.load(output_dir / "discriminator.pth", map_location=device))
         print("Discriminator loaded.")
-
-    if (output_path / "image_encoder.pth").exists():
-        image_encoder.load_state_dict(torch.load(output_path / "image_encoder.pth"))
+    if (output_dir / "image_encoder.pth").exists():
+        image_encoder.load_state_dict(torch.load(output_dir / "image_encoder.pth", map_location=device))
         print("Image Encoder loaded.")
 
-    if (output_path / "text_encoder.pth").exists():
-        text_encoder.load_state_dict(torch.load(output_path / "text_encoder.pth"))
+    if (output_dir / "text_encoder.pth").exists():
+        text_encoder.load_state_dict(torch.load(output_dir / "text_encoder.pth", map_location=device))
         print("Text Encoder loaded.")
