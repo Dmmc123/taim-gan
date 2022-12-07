@@ -122,7 +122,7 @@ class VGGEncoder(nn.Module):
         self.model = torch.hub.load("pytorch/vision:v0.10.0", "vgg16", pretrained=True)
 
         for param in self.model.parameters():
-            param.resquires_grad = False
+            param.requires_grad = False
 
         self.vgg_modules = self.model.features._modules
 

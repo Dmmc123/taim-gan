@@ -69,6 +69,12 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
     load_model(generator, discriminator, image_encoder, text_encoder, output_dir)
 
+    for param in image_encoder.parameters():
+        param.requires_grad = False
+
+    for param in text_encoder.parameters():
+        param.requires_grad = False
+
     (
         optimizer_g,
         optimizer_d,
@@ -92,7 +98,6 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
             )
 
             optimizer_d.zero_grad()
-            optimizer_text_encoder.zero_grad()
 
             noise = torch.randn(batch_size, noise_dim).to(device)
             word_emb, sent_emb = text_encoder(correct_capt)
@@ -142,12 +147,10 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             loss_discri.backward(retain_graph=True)
             optimizer_d.step()
-            optimizer_text_encoder.step()
 
             disc_loss.append(loss_discri.item())
 
             optimizer_g.zero_grad()
-            opt_image_encoder.zero_grad()
 
             word_emb, sent_emb = text_encoder(correct_capt)
 
@@ -196,7 +199,6 @@ def train(data_loader: Any, config_dict: dict[str, Any]) -> None:
 
             loss_gen.backward()
             optimizer_g.step()
-            opt_image_encoder.step()
             gen_loss.append(loss_gen.item())
 
             if (batch_idx + 1) % 20 == 0:

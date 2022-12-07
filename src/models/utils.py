@@ -29,6 +29,29 @@ def copy_gen_params(generator: Generator) -> Any:
     return params
 
 
+def define_optimizers_damsm(
+    image_encoder: InceptionEncoder,
+    text_encoder: TextEncoder,
+    lr_config: dict[str, float],
+) -> Any:
+    """
+    Function to define the optimizers for the generator and discriminator
+    :param generator: Generator model
+    :param image_encoder: Image encoder model
+    :param text_encoder: Text encoder model
+    :param discriminator: Discriminator model
+    :param lr_config: Dictionary containing the learning rates for the optimizers
+
+    """
+    img_encoder_lr = lr_config["img_encoder_lr"]
+    text_encoder_lr = lr_config["text_encoder_lr"]
+
+    optimizer_text_encoder = optim.Adam(text_encoder.parameters(), lr=text_encoder_lr)
+    optimizer_image_encoder = optim.Adam(image_encoder.parameters(), lr=img_encoder_lr)
+
+    return optimizer_text_encoder, optimizer_image_encoder
+
+
 def define_optimizers(
     generator: Generator,
     discriminator: Discriminator,
@@ -108,6 +131,36 @@ def get_captions(captions: torch.Tensor, ix2word: Dict[int, str]) -> Any:
     captions = captions.cpu().detach().numpy()
     captions = [[ix2word[ix] for ix in cap if ix != 0] for cap in captions]  # type: ignore
     return captions
+
+
+def save_model_damsm(
+    image_encoder: InceptionEncoder,
+    text_encoder: TextEncoder,
+    epoch: int,
+    output_dir: pathlib.PosixPath,
+) -> None:
+    """
+    Function to save the model.
+    :param generator: Generator model
+    :param discriminator: Discriminator model
+    :param image_encoder: Image encoder model
+    :param text_encoder: Text encoder model
+    :param params: Parameters of the generator
+    :param epoch: Epoch number
+    :param output_dir: Output directory
+    """
+    output_path = output_dir / "weights_damsm/"
+    Path(output_path / "image_encoder").mkdir(parents=True, exist_ok=True)
+    torch.save(
+        image_encoder.state_dict(),
+        output_path / f"image_encoder/image_encoder_epoch_{epoch}.pth",
+    )
+    Path(output_path / "text_encoder").mkdir(parents=True, exist_ok=True)
+    torch.save(
+        text_encoder.state_dict(),
+        output_path / f"text_encoder/text_encoder_epoch_{epoch}.pth",
+    )
+    print(f"Model saved at epoch {epoch}.")
 
 
 def save_model(
@@ -205,6 +258,39 @@ def save_image_and_caption(
             txt_file.write(text_str)
             txt_file.write("\n")
 
+def save_plot_damsm(
+    gen_loss: list[float],
+    epoch: int,
+    batch_idx: int,
+    output_dir: pathlib.PosixPath,
+) -> None:
+    """
+    Function to save the plot of the loss.
+    :param gen_loss: List of generator losses
+    :param disc_loss: List of discriminator losses
+    :param epoch: Epoch number
+    :param batch_idx: Batch index
+    :param output_dir: Output directory
+    """
+    pickle_path = output_dir / "losses_damsm/"
+    output_path = output_dir / "plots_damsm" / f"{epoch}_epochs/{batch_idx}_batch/"
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+    Path(pickle_path).mkdir(parents=True, exist_ok=True)
+
+    with open(pickle_path / "gen_loss.pkl", "wb") as pickl_file:
+        pickle.dump(gen_loss, pickl_file)
+
+    plt.style.use("fivethirtyeight")
+    plt.figure(figsize=(24, 12))
+    plt.plot(gen_loss, label="DAMSM Loss")
+    plt.xlabel("No of Iterations")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig(output_path / "loss.png", bbox_inches="tight")
+    plt.clf()
+    plt.close()
+
+
 
 def save_plot(
     gen_loss: List[float],
@@ -270,7 +356,12 @@ def load_model(
     if (output_dir / "image_encoder.pth").exists():
         image_encoder.load_state_dict(torch.load(output_dir / "image_encoder.pth", map_location=device))
         print("Image Encoder loaded.")
-
-    if (output_dir / "text_encoder.pth").exists():
-        text_encoder.load_state_dict(torch.load(output_dir / "text_encoder.pth", map_location=device))
+    elif (output_path / "image_encoder_damsm_utkface.pth").exists():
+        image_encoder.load_state_dict(torch.load(output_path / "image_encoder_damsm_utkface.pth"))
+        print("UTKFace DAMSM Image Encoder loaded.")
+    if (output_path / "text_encoder.pth").exists():
+        text_encoder.load_state_dict(torch.load(output_path / "text_encoder.pth"))
         print("Text Encoder loaded.")
+    elif (output_path / "text_encoder_damsm_utkface.pth").exists():
+        text_encoder.load_state_dict(torch.load(output_path / "text_encoder_damsm_utkface.pth"))
+        print("UTKFace DAMSM Text Encoder loaded.")
