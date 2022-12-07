@@ -45,6 +45,8 @@ Example of evaluation script:
 compute_metrics.py --data-dir data --split test --num-capt 10 --batch-size 32 --num-workers 4
 ```
 
+For additonal information about possible values of arguments and their meaning, please type `train.py --help` or `compute_metrics.py --help`
+
 ## Project Organization
 
 Project uses template from [cookiecutter](https://drivendata.github.io/cookiecutter-data-science) for data science projects
