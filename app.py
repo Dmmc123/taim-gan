@@ -1,12 +1,13 @@
+import gradio
 import numpy as np # this should come first to mitigate mlk-service bug
 from src.models.utils import get_image_arr, load_model
 from src.data import TAIMGANTokenizer
 from torchvision import transforms
 from src.config import config_dict
 from pathlib import Path
-from enum import IntEnum, auto
 from PIL import Image
 import gradio as gr
+import logging
 import torch
 from src.models.modules import (
     VGGEncoder,
@@ -109,6 +110,7 @@ def change_image_with_text(image: Image, text: str, model_name: str) -> Image:
 ##########
 # GRADIO #
 ##########
+gradio.close_all()
 demo = gr.Interface(
     fn=change_image_with_text,
     inputs=[gr.Image(type="pil"), "text", gr.inputs.Dropdown(list(models.keys()))],
@@ -119,6 +121,10 @@ demo = gr.Interface(
         ["src/data/stubs/bird.jpg", "white bird with black wings", "Bird"]
     ]
 )
-demo.launch(debug=True)
-
-
+print("Please visit http://0.0.0.0:7861")
+demo.launch(
+    server_name="0.0.0.0",
+    server_port=7861,
+    show_error=True,
+    debug=True
+)

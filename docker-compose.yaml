@@ -1,0 +1,8 @@
+services:
+  demo-app:
+    image: taim-gan
+    restart: always
+    ports:
+      - "7860-7861:7860-7861"
+    build:
+      dockerfile: Dockerfile
