@@ -2,3 +2,4 @@
 
 from .collate import custom_collate
 from .datasets import TextImageDataset
+from .tokenizer import TAIMGANTokenizer
