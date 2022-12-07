@@ -78,7 +78,7 @@ Project uses template from [cookiecutter](https://drivendata.github.io/cookiecut
     |   │
     |   ├── integration       <- Tests for checking the whole flow of TAIM-GAN
     |   │ 
-    |   └── init              <- Scripts for testing the mudules in atomic way
+    |   └── unit              <- Scripts for testing the mudules in atomic way
     |        
     ├── app.py                <- Code for Gradio web application
     ├── compute_metrics.py    <- Code for computing Inceptions Scores on datasets
