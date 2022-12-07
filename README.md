@@ -12,7 +12,7 @@ There's two primary ways in which you can use our project: use our publicly depl
 
 ### Hugging Face
 
-Visit our [project's card](https://huggingface.co/spaces/ML701G7/taim-gan) on Hugging Face! It has some interesting examples:
+Visit the [live demo](https://huggingface.co/spaces/ML701G7/taim-gan) of our project on Hugging Face! It has some interesting examples:
 
 ![image](https://user-images.githubusercontent.com/54360024/206266447-14af0ab7-cc2c-478a-a5fd-ac0f53496685.png)
 ![image](https://user-images.githubusercontent.com/54360024/206266487-4e7bc584-eb44-45b6-b820-f07bc9707b22.png)
