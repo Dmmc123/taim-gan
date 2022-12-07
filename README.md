@@ -65,7 +65,6 @@ Project uses template from [cookiecutter](https://drivendata.github.io/cookiecut
     │   |   ├── datasets.py   <- Code for processing the raw data from datasets
     │   |   └── tokenizer.py  <- API for tokenizing text captions
     |   |
-    |   |
     │   ├── models            <- Code for model components and inference utility functions
     |   |   |
     |   |   ├── modules       <- All the atomic modules that constitute TAIM-GAN
@@ -91,13 +90,13 @@ Project uses template from [cookiecutter](https://drivendata.github.io/cookiecut
 
 ## References
 
-The project is primarily based on [LWGAN](https://github.com/mrlibw/Lightweight-Manipulation/) research with the following differences:
+The project is primarily based on [LWGAN](https://github.com/mrlibw/Lightweight-Manipulation/) research. Here is what we did differently:
 
-* We have removed the redundant modules from the source code
-* We have refactored from scratch the existing code by providing type hints for the most part of code-base
-* We have covered most parts of code with unit and intergrations tests
-* We removed the deprecated functionality and upgraded the project according the latest version of PyTorch 1.12.1
-* We have collected new dataset with captions for facial pictures and finetuned TAIM-GAN with it
+* Removed the redundant modules from the source code
+* Refactored from scratch the existing code by providing type hints for the most part of code-base
+* Covered most parts of code with unit and intergrations tests
+* Removed the deprecated functionality and upgraded the project according the latest version of PyTorch 1.12.1
+* Collected new dataset with captions for facial pictures and finetuned TAIM-GAN with it
 
 Also here are some other researches we used as an additional reference:
 
